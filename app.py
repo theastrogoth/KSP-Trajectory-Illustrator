@@ -70,11 +70,18 @@ app.layout = html.Div(className='row', children=[
         html.Label('System Resize Factor'),
         dcc.Input(id = 'systemResize-input',  
                   type='number',
-                  value = 1),
+                  value = 1,
+                  min = 0),
         html.Label('System Rescale Factor'),
         dcc.Input(id = 'systemRescale-input',
                   type='number',
-                  value = 1),
+                  value = 1,
+                  min = 0),
+        html.Label('Day Length Multiplier'),
+        dcc.Input(id='systemDayScale-input',
+                  type='number',
+                  value = 1,
+                  min = 0),
         html.Label('Start time (s)'),
         dcc.Input(id = 'startTime-input',  
                   type='number',
@@ -199,12 +206,29 @@ app.layout = html.Div(className='row', children=[
 #%% callbacks
 @app.callback(
      Output('dateFormat-div', 'children'),
-    [Input('dateFormat-radio', 'value')]
+    [Input('dateFormat-radio', 'value'),
+     Input('systemResize-input', 'value'),
+     Input('systemRescale-input','value'),
+     Input('systemDayScale-input','value')]
     )
-def set_date_format(selected_format):
+def set_date_format(selected_format, resizeFactor, rescaleFactor, dayFactor):
     formats = dict(Kerbin = dict(day=6, year=426),
                    Earth = dict(day=24, year=365))
-    return formats[selected_format]
+    
+    dateFormat = formats[selected_format]
+    day = dateFormat['day']
+    year = dateFormat['year']
+    
+    day = day * dayFactor
+    
+    aScale = rescaleFactor
+    muScale = resizeFactor**2
+    year = year * math.sqrt(aScale**3/muScale) / dayFactor
+    
+    year = round(year)
+    day = round(day)
+    
+    return dict(day=day, year=year)
 
 @app.callback(
     [Output('system-div', 'children'),
