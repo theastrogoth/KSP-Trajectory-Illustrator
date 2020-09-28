@@ -15,9 +15,6 @@ import numpy as np
 from numpy.linalg import norm
 from orbit import Orbit
 from body import Body
-from transfer import Transfer
-from prktable import PorkchopTable
-
 
 DOWNLOAD_DIRECTORY = "/tmp/app_generated_files"
 
@@ -52,24 +49,32 @@ app.layout = html.Div(className='row', children=[
     html.Div(className='four columns', children=[
         html.H3('Settings'),
         html.Label('Date Format'),
-            dcc.RadioItems(
-                id = 'dateFormat-radio',
-                options=[
-                    {'label': 'Kerbin Time (6h days, 426d years)',
-                     'value': 'Kerbin'},
-                    {'label': 'Earth Time (24h days, 365d years)',
-                     'value': 'Earth'},
-                    ],
-                value='Kerbin'
-                ),
-            html.Label('System'),
-            dcc.RadioItems(
-                id = 'system-radio',
-                options=[
-                    {'label': 'Kerbol', 'value': 'Kerbol'},
-                    {'label': 'Sol', 'value': 'Sol'}],
-                value='Kerbol',
-                ),
+        dcc.RadioItems(
+            id = 'dateFormat-radio',
+            options=[
+                {'label': 'Kerbin Time (6h days, 426d years)',
+                 'value': 'Kerbin'},
+                {'label': 'Earth Time (24h days, 365d years)',
+                 'value': 'Earth'},
+                ],
+            value='Kerbin'
+            ),
+        html.Label('System'),
+        dcc.RadioItems(
+            id = 'system-radio',
+            options=[
+                {'label': 'Kerbol', 'value': 'Kerbol'},
+                {'label': 'Sol', 'value': 'Sol'}],
+            value='Kerbol',
+            ),
+        html.Label('System Resize Factor'),
+        dcc.Input(id = 'systemResize-input',  
+                  type='number',
+                  value = 1),
+        html.Label('System Rescale Factor'),
+        dcc.Input(id = 'systemRescale-input',
+                  type='number',
+                  value = 1),
         html.Label('Start time (s)'),
         dcc.Input(id = 'startTime-input',  
                   type='number',
@@ -80,7 +85,9 @@ app.layout = html.Div(className='row', children=[
         html.Label('Max number of patched conics'),
         dcc.Input(id = 'numPatches-input',  
                   type='number',
-                  value = 10),
+                  value = 10,
+                  min = 0,
+                  step = 1),
         
         html.H3('Starting Orbit'),
         html.Label('Starting Body'),
@@ -177,6 +184,10 @@ app.layout = html.Div(className='row', children=[
     html.Div(id='orbits-div', style = {'display': 'none'}),
     # html.Div(id='maneuverNodes-div', style = {'display': 'none'}),
     html.Div(id='dateFormat-div', style = {'display': 'none'}),
+    html.Div(id='originalSystems-div', style = {'display': 'none'},
+             children=[
+                 jsonpickle.encode(kerbol_system),
+                 jsonpickle.encode(sol_system)]),
     html.Div(id='allSystems-div', style = {'display': 'none'},
              children=[
                  jsonpickle.encode(kerbol_system),
@@ -198,16 +209,26 @@ def set_date_format(selected_format):
 @app.callback(
     [Output('system-div', 'children'),
      Output('startingBody-dropdown', 'value')],
-    [Input('system-radio','value')],
+    [Input('system-radio','value'),
+     Input('systemResize-input','value'),
+     Input('systemRescale-input','value')],
     [State('allSystems-div', 'children')]
     )
-def set_system(system_name, all_systems):
+def set_system(system_name, resizeFactor, rescaleFactor, all_systems):
     if system_name == 'Kerbol':
-        return all_systems[0], 'Kerbin'
+        system = jsonpickle.decode(all_systems[0])
+        sBody = 'Kerbin'
     elif system_name == 'Sol':
-        return all_systems[1], 'Earth'
+        system = jsonpickle.decode(all_systems[1])
+        sBody = 'Earth'
     else:
         return dash.no_update, dash.no_update
+    
+    for body in system:
+        body.resize(resizeFactor)
+        body.rescale(rescaleFactor)
+    
+    return jsonpickle.encode(system), sBody
 
 @app.callback(
     Output('startingBody-dropdown', 'options'),
