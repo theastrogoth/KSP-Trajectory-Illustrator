@@ -91,21 +91,26 @@ app.layout = html.Div(className='row', children=[
                   min = 0),
         html.Label('Start time (s)'),
         dcc.Input(id = 'startTime-input',  
-                  type='number',
-                  value = 4515000),
+                  type='number'),
         html.Label('End time (s)'),
         dcc.Input(id = 'endTime-input',  
                   type='number'),
-        html.Label('Max number of patched conics'),
+        html.Label('Number of patched conics'),
         dcc.Input(id = 'numPatches-input',  
                   type='number',
                   value = 10,
                   min = 0,
                   step = 1),
+        html.Label('Number of revolutions to search for intercept'),
+        dcc.Input(id = 'numRevs-input',  
+                  type='number',
+                  value = 5,
+                  min = 0,
+                  step = 1),
         html.Label('Number of vessels'),
         dcc.Input(id = 'numVessels-input',  
                   type='number',
-                  value = 2,
+                  value = 3,
                   min = 1,
                   step = 1),
         ]),
@@ -120,11 +125,11 @@ app.layout = html.Div(className='row', children=[
                 dcc.Input(type='number',                                #2
                           min=0,
                           max=255,
-                          value=255),
+                          value=125),
                 dcc.Input(type='number',                                #3
                           min=0,
                           max=255,
-                          value=255),
+                          value=125),
                 dcc.Input(type='number',                                #4
                           min=0,
                           max=255,
@@ -213,7 +218,87 @@ app.layout = html.Div(className='row', children=[
                 dcc.Input(type='number',                                #2
                           min=0,
                           max=255,
-                          value=0),
+                          value=255),
+                dcc.Input(type='number',                                #3
+                          min=0,
+                          max=255,
+                          value=125),
+                dcc.Input(type='number',                                #4
+                          min=0,
+                          max=255,
+                          value=125),
+                html.H3('Starting Orbit'),                              #5
+                html.Label('Starting Body'),                            #6
+                dcc.Dropdown(                                           #7
+                    value = 'Kerbin',
+                    options = startBody_options(kerbol_system)
+                    ),
+                html.Label('Semi-major axis (m)'),                      #8
+                dcc.Input(type='number',                                #9
+                          value = 700000),
+                html.Label('Eccentricity'),                             #10
+                dcc.Input(type='number',                                #11
+                          value = 0),
+                html.Label('Inclination (°)'),                          #12
+                dcc.Input(type='number',                                #13
+                          value = 0),
+                html.Label('Argument of the Periapsis (°)'),            #14
+                dcc.Input(type='number',                                #15
+                          value = 0),
+                html.Label('Longitude of the Ascending Node (°)'),      #16
+                dcc.Input(type='number',                                #17
+                          value = 0),
+                html.Label('Mean anomaly at epoch (radians)'),          #18
+                dcc.Input(type='number',                                #19
+                          value = 0),
+                html.Label('Epoch (s)'),                                #20
+                dcc.Input(type='number',                                #21
+                          value = 5000000),
+        
+                html.H3('Maneuver Nodes'),                              #22
+                html.Label('Number of maneuver nodes'),                 #23
+                dcc.Input(id={'type': 'numNodes-input',                 #24
+                              'index': 2},
+                          type = 'number',
+                          value = 2,
+                          min = 0,
+                          step = 1),
+                html.Div(children=[                                     #25
+                    html.Label('Maneuver node 1'),                  #0
+                    dcc.Input(type='number',                        #1
+                              placeholder='Prograde (m/s)',
+                              value=1039.78),
+                    dcc.Input(type='number',                        #2
+                              placeholder='Normal (m/s)',
+                              value=161.56),
+                    dcc.Input(type='number',                        #3
+                              placeholder='Radial (m/s)',
+                              value=0),
+                    dcc.Input(type='number',                        #4
+                              placeholder='UT (s)',
+                              value=5283624.070),
+                    html.Label('Maneuver node 2'),
+                    dcc.Input(type='number',
+                              placeholder='Prograde (m/s)',
+                              value=-644.77),
+                    dcc.Input(type='number',
+                              placeholder='Normal (m/s)',
+                              value=20.51),
+                    dcc.Input(type='number',
+                              placeholder='Radial (m/s)',
+                              value=0),
+                    dcc.Input(type='number',
+                              placeholder='UT (s)',
+                              value=10806400.00),
+                     ]),
+                ]),
+            dcc.Tab(label='Vessel 3', value='vessel3', children=[
+                html.H3('Plot Style'),                                  #0
+                html.Label('Color (RGB)'),                              #1
+                dcc.Input(type='number',                                #2
+                          min=0,
+                          max=255,
+                          value=125),
                 dcc.Input(type='number',                                #3
                           min=0,
                           max=255,
@@ -221,7 +306,7 @@ app.layout = html.Div(className='row', children=[
                 dcc.Input(type='number',                                #4
                           min=0,
                           max=255,
-                          value=0),
+                          value=125),
                 html.H3('Starting Orbit'),                              #5
                 html.Label('Starting Body'),                            #6
                 dcc.Dropdown(                                           #7
@@ -253,7 +338,7 @@ app.layout = html.Div(className='row', children=[
                 html.H3('Maneuver Nodes'),                              #22
                 html.Label('Number of maneuver nodes'),                 #23
                 dcc.Input(id={'type': 'numNodes-input',                 #24
-                              'index': 2},
+                              'index': 3},
                           type = 'number',
                           value = 0,
                           min = 0,
@@ -312,7 +397,7 @@ app.layout = html.Div(className='row', children=[
     html.Div(id='system-div', style={'display': 'none',}, 
              children=jsonpickle.encode(kerbol_system)),
     html.Div(id='numManeuverNodes-div', style={'display': 'none'},
-             children=[3,0]),
+             children=[3,2,0]),
     ])
 
 #%% callbacks
@@ -491,12 +576,11 @@ def update_vessel_tabs(numVessels, numsNodes, prevVesselTabs, prevTabVal, system
     [Input('plot-button','n_clicks')],
     [State('system-div','children'),
      State('vessel-tabs','children'),
-     State('startTime-input','value'),
-     State('endTime-input','value'),
-     State('numPatches-input','value')]
+     State('numPatches-input','value'),
+     State('numRevs-input','value')]
     )
 def update_orbits(nClicks, system, vesselTabs,
-                  startTime, endTime, numPatches):
+                  numPatches, numRevs):
     
     # don't update on page load
     if nClicks == 0:
@@ -554,29 +638,34 @@ def update_orbits(nClicks, system, vesselTabs,
             nodeTimes.append(nodesChildren[5*ii+4]['props']['value'])
         
         orbits = [sOrb]
-        times = [startTime]
-        t = startTime
+        times = [startEpoch]
+        if len(nodeTimes)>0:
+            if nodeTimes[0] < startEpoch:
+                times = [nodeTimes[0]-1]
+        t = times[0]
         nodeIdx = 0
         for num in range(numPatches+len(nodeTimes)):
-            if not (endTime is None):
-                if t > endTime:
-                    break
             nextOrb, time = orbits[-1].propagate(t+0.1)
             if nextOrb is None:
-                t = t + orbits[-1].get_period()
+                for ii in range(numRevs):
+                    t = t + orbits[-1].get_period()
+                    nextOrb, time = orbits[-1].propagate(t+0.1)
+                    if not nextOrb is None:
+                        break
+            
+            if nextOrb is None:
                 if nodeIdx < len(nodeTimes):
-                    if t > nodeTimes[nodeIdx]:
-                        time = nodeTimes[nodeIdx]
-                        pos, vel = orbits[-1].get_state_vector(time)
-                        burn = burn_components_to_absolute(nodeBurns[nodeIdx][0],
-                                                           nodeBurns[nodeIdx][1],
-                                                           nodeBurns[nodeIdx][2],
-                                                           pos, vel)
-                        nextOrb = Orbit.from_state_vector(pos, vel+burn, time,  \
-                                                          orbits[-1].prim);
-                        orbits.append(nextOrb)
-                        times.append(time)
-                        nodeIdx = nodeIdx+1
+                    time = nodeTimes[nodeIdx]
+                    pos, vel = orbits[-1].get_state_vector(time)
+                    burn = burn_components_to_absolute(nodeBurns[nodeIdx][0],
+                                                       nodeBurns[nodeIdx][1],
+                                                       nodeBurns[nodeIdx][2],
+                                                       pos, vel)
+                    nextOrb = Orbit.from_state_vector(pos, vel+burn, time,  \
+                                                      orbits[-1].prim);
+                    orbits.append(nextOrb)
+                    times.append(time)
+                    nodeIdx = nodeIdx+1
             else:
                 t = time
                 if nodeIdx < len(nodeTimes):
@@ -609,18 +698,22 @@ def update_orbits(nClicks, system, vesselTabs,
      Output('conic-tabs', 'value')],
     [Input('orbits-div','children'),
      Input('dateFormat-div','children'),
-     Input('display-checklist', 'value'),
-     Input('endTime-input','value')],
-    [State('conic-tabs', 'value'),
+     Input('display-checklist', 'value')],
+    [State('startTime-input','value'),
+     State('endTime-input','value'),
+     State('conic-tabs', 'value'),
      State('vessel-tabs', 'children')]
     )
-def update_graphs(orbitsTimes, dateFormat, displays, endTime, tabVal, 
-                  vesselTabs):
+def update_graphs(orbitsTimes, dateFormat, displays, startTime, endTime,
+                  tabVal, vesselTabs):
     
     if orbitsTimes is None:
         return dash.no_update
     
     vesselOrbitsTimes = jsonpickle.decode(orbitsTimes)
+    
+    if startTime is None:
+        startTime = 0
     
     tabs = []
     figs = []
@@ -647,6 +740,7 @@ def update_graphs(orbitsTimes, dateFormat, displays, endTime, tabVal,
                               ])
             nodeTimes.append(nodesChildren[5*kk+4]['props']['value'])
         
+        eTime = None
         for ii in range(len(orbits)):
             
             orb = orbits[ii]
@@ -654,72 +748,77 @@ def update_graphs(orbitsTimes, dateFormat, displays, endTime, tabVal,
             
             soi = orb.prim.soi
             
-            if ii == len(orbits)-1:
-                if orb.ecc > 1:
-                    if soi is None:
-                        maxDist = orb.prim.satellites[-1].orb.a *                   \
-                                  (1+orb.prim.satellites[-1].orb.ecc) +             \
-                                  orb.prim.satellites[-1].soi;
-                    else:
-                        maxDist = soi
-                    # true anomaly at escape
-                    try:
-                        thetaEscape = math.acos(1/orb.ecc *                         \
-                                                (orb.a*(1-orb.ecc**2)/maxDist - 1))
-                    except ValueError:
-                        thetaEscape = math.acos(
-                            math.copysign(1, 1/orb.ecc *                            \
-                                          (orb.a*(1-orb.ecc**2)/maxDist - 1)))
-                    eTime = orb.get_time(thetaEscape)
-                else:
-                    if soi is None:
-                        eTime = sTime + orb.get_period()
-                    else:
-                        if orb.a*(1+orb.ecc)>soi:
-                            try:
-                                thetaEscape = math.acos(1/orb.ecc *                 \
-                                                        (orb.a*(1-orb.ecc**2)/soi - 1))
-                            except ValueError:
-                                thetaEscape = math.acos(
-                                    math.copysign(1, 1/orb.ecc *                    \
-                                                  (orb.a*(1-orb.ecc**2)/soi - 1)))
-                            eTime = orb.get_time(thetaEscape)
+            if sTime < startTime:
+                if ii < len(times)-1:
+                    if not times[ii+1] < startTime:
+                        sTime = startTime
+            
+            if not sTime < startTime:
+                if ii == len(orbits)-1:
+                    if orb.ecc > 1:
+                        if soi is None:
+                            maxDist = orb.prim.satellites[-1].orb.a *                   \
+                                      (1+orb.prim.satellites[-1].orb.ecc) +             \
+                                      orb.prim.satellites[-1].soi;
                         else:
+                            maxDist = soi
+                        # true anomaly at escape
+                        try:
+                            thetaEscape = math.acos(1/orb.ecc *                         \
+                                                    (orb.a*(1-orb.ecc**2)/maxDist - 1))
+                        except ValueError:
+                            thetaEscape = math.acos(
+                                math.copysign(1, 1/orb.ecc *                            \
+                                              (orb.a*(1-orb.ecc**2)/maxDist - 1)))
+                        eTime = orb.get_time(thetaEscape)
+                    else:
+                        if soi is None:
                             eTime = sTime + orb.get_period()
-            else:
-                eTime = times[ii+1]
+                        else:
+                            if orb.a*(1+orb.ecc)>soi:
+                                try:
+                                    thetaEscape = math.acos(1/orb.ecc *                 \
+                                                            (orb.a*(1-orb.ecc**2)/soi - 1))
+                                except ValueError:
+                                    thetaEscape = math.acos(
+                                        math.copysign(1, 1/orb.ecc *                    \
+                                                      (orb.a*(1-orb.ecc**2)/soi - 1)))
+                                eTime = orb.get_time(thetaEscape)
+                            else:
+                                eTime = sTime + orb.get_period()
+                else:
+                    eTime = times[ii+1]
             
-            if not endTime is None:
-                if endTime < eTime:
-                    eTime = endTime
-            
-            if orb.prim.name in systems:
-                figIdx = systems.index(orb.prim.name)
-            else:
-                figs.append(go.Figure())
-                systems.append(orb.prim.name)
-                figIdx = -1
-                lim = plot_system(figs[figIdx], orb.prim, times[ii],            \
-                      dateFormat, displays);
-                set_trajectory_plot_layout(figs[figIdx], lim, 1.5*abs(orb.a)/lim, orb.prim.name)
-            
-            if 'orbits' in displays:
-                add_orbit(figs[figIdx], orb, sTime, eTime, 201,
-                      dateFormat, 'apses' in displays, 'nodes' in displays,
-                      fullPeriod=False, color=color, name='Conic '+str(ii+1),
-                      style='solid', fade=True)
-            
-            # add burn arrows
-            if (eTime in nodeTimes) and ('arrows' in displays):
-                burnIdx = nodeTimes.index(eTime)
-                burnDV = nodeBurns[burnIdx]
-                print(burnDV)
-                add_burn_arrow(figs[figIdx], burnDV, eTime, orb, dateFormat,
-                               1/2, 'Burn'+str(burnIdx+1), (255,0,0), False)
-            
-            if not endTime is None:
-                if eTime >= endTime:
-                    break
+            if not eTime is None:
+                if not endTime is None:
+                    if endTime < eTime:
+                        eTime = endTime
+                if orb.prim.name in systems:
+                    figIdx = systems.index(orb.prim.name)
+                else:
+                    figs.append(go.Figure())
+                    systems.append(orb.prim.name)
+                    figIdx = -1
+                    lim = plot_system(figs[figIdx], orb.prim, times[ii],            \
+                          dateFormat, displays);
+                    set_trajectory_plot_layout(figs[figIdx], lim, 1.5*abs(orb.a)/lim, orb.prim.name)
+                
+                if 'orbits' in displays:
+                    add_orbit(figs[figIdx], orb, sTime, eTime, 201,
+                          dateFormat, 'apses' in displays, 'nodes' in displays,
+                          fullPeriod=False, color=color, name='Conic '+str(ii+1),
+                          style='solid', fade=True)
+                
+                # add burn arrows
+                if (eTime in nodeTimes) and ('arrows' in displays):
+                    burnIdx = nodeTimes.index(eTime)
+                    burnDV = nodeBurns[burnIdx]
+                    add_burn_arrow(figs[figIdx], burnDV, eTime, orb, dateFormat,
+                                   1/2, 'Burn'+str(burnIdx+1), (255,0,0), False)
+                
+                if not endTime is None:
+                    if eTime >= endTime:
+                        break
         
     for jj in range(len(figs)):
         
