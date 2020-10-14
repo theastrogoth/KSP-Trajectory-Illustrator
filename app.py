@@ -122,44 +122,63 @@ app.layout = html.Div(className='row', children=[
             dcc.Tab(label='Vessel 1', value='vessel1', children=[
                 html.H3('Plot Style'),                                  #0
                 html.Label('Color (RGB)'),                              #1
-                dcc.Input(type='number',                                #2
+                dcc.Input(id={'type': 'red-input',                      #2
+                              'index': 1},
+                          type='number',
                           min=0,
                           max=255,
                           value=125),
-                dcc.Input(type='number',                                #3
+                dcc.Input(id={'type': 'grn-input',                      #3
+                              'index': 1},
+                          type='number',
                           min=0,
                           max=255,
                           value=125),
-                dcc.Input(type='number',                                #4
+                dcc.Input(id={'type': 'blu-input',                      #4
+                              'index': 1},
+                          type='number',
                           min=0,
                           max=255,
                           value=255),
                 html.H3('Starting Orbit'),                              #5
                 html.Label('Starting Body'),                            #6
-                dcc.Dropdown(                                           #7
-                    value = 'Kerbin',
-                    options = startBody_options(kerbol_system)
+                dcc.Dropdown(value = 'Kerbin',                          #7
+                             options = startBody_options(kerbol_system)
                     ),
                 html.Label('Semi-major axis (m)'),                      #8
-                dcc.Input(type='number',                                #9
+                dcc.Input(id={'type': 'sma-input',                      #9
+                              'index': 1},
+                          type='number',
                           value = 700000),
                 html.Label('Eccentricity'),                             #10
-                dcc.Input(type='number',                                #11
+                dcc.Input(id={'type': 'ecc-input',                      #11
+                              'index': 1},
+                          type='number',
                           value = 0),
                 html.Label('Inclination (°)'),                          #12
-                dcc.Input(type='number',                                #13
+                dcc.Input(id={'type': 'inc-input',                      #13
+                              'index': 1},
+                          type='number',
                           value = 0),
                 html.Label('Argument of the Periapsis (°)'),            #14
-                dcc.Input(type='number',                                #15
+                dcc.Input(id={'type': 'argp-input',                     #15
+                              'index': 1},
+                          type='number',
                           value = 0),
                 html.Label('Longitude of the Ascending Node (°)'),      #16
-                dcc.Input(type='number',                                #17
+                dcc.Input(id={'type': 'lan-input',                      #17
+                              'index': 1},
+                          type='number',
                           value = 0),
                 html.Label('Mean anomaly at epoch (radians)'),          #18
-                dcc.Input(type='number',                                #19
+                dcc.Input(id={'type': 'mo-input',                       #19
+                              'index': 1},
+                          type='number',
                           value = 0),
                 html.Label('Epoch (s)'),                                #20
-                dcc.Input(type='number',                                #21
+                dcc.Input(id={'type': 'epc-input',                      #21
+                              'index': 1},
+                          type='number',
                           value = 4510000),
         
                 html.H3('Maneuver Nodes'),                              #22
@@ -215,44 +234,63 @@ app.layout = html.Div(className='row', children=[
             dcc.Tab(label='Vessel 2', value='vessel2', children=[
                 html.H3('Plot Style'),                                  #0
                 html.Label('Color (RGB)'),                              #1
-                dcc.Input(type='number',                                #2
+                dcc.Input(id={'type': 'red-input',                      #2
+                              'index': 2},
+                          type='number',
                           min=0,
                           max=255,
                           value=255),
-                dcc.Input(type='number',                                #3
+                dcc.Input(id={'type': 'grn-input',                      #3
+                              'index': 2},
+                          type='number',
                           min=0,
                           max=255,
                           value=125),
-                dcc.Input(type='number',                                #4
+                dcc.Input(id={'type': 'blu-input',                      #4
+                              'index': 2},
+                          type='number',
                           min=0,
                           max=255,
                           value=125),
                 html.H3('Starting Orbit'),                              #5
                 html.Label('Starting Body'),                            #6
-                dcc.Dropdown(                                           #7
-                    value = 'Kerbin',
-                    options = startBody_options(kerbol_system)
+                dcc.Dropdown(value = 'Kerbin',                          #7
+                             options = startBody_options(kerbol_system)
                     ),
                 html.Label('Semi-major axis (m)'),                      #8
-                dcc.Input(type='number',                                #9
+                dcc.Input(id={'type': 'sma-input',                      #9
+                              'index': 2},
+                          type='number',
                           value = 700000),
                 html.Label('Eccentricity'),                             #10
-                dcc.Input(type='number',                                #11
+                dcc.Input(id={'type': 'ecc-input',                      #11
+                              'index': 2},
+                          type='number',
                           value = 0),
                 html.Label('Inclination (°)'),                          #12
-                dcc.Input(type='number',                                #13
+                dcc.Input(id={'type': 'inc-input',                      #13
+                              'index': 2},
+                          type='number',
                           value = 0),
                 html.Label('Argument of the Periapsis (°)'),            #14
-                dcc.Input(type='number',                                #15
+                dcc.Input(id={'type': 'argp-input',                     #15
+                              'index': 2},
+                          type='number',
                           value = 0),
                 html.Label('Longitude of the Ascending Node (°)'),      #16
-                dcc.Input(type='number',                                #17
+                dcc.Input(id={'type': 'lan-input',                      #17
+                              'index': 2},
+                          type='number',
                           value = 0),
                 html.Label('Mean anomaly at epoch (radians)'),          #18
-                dcc.Input(type='number',                                #19
+                dcc.Input(id={'type': 'mo-input',                       #19
+                              'index': 2},
+                          type='number',
                           value = 0),
                 html.Label('Epoch (s)'),                                #20
-                dcc.Input(type='number',                                #21
+                dcc.Input(id={'type': 'epc-input',                      #21
+                              'index': 2},
+                          type='number',
                           value = 5000000),
         
                 html.H3('Maneuver Nodes'),                              #22
@@ -295,44 +333,63 @@ app.layout = html.Div(className='row', children=[
             dcc.Tab(label='Vessel 3', value='vessel3', children=[
                 html.H3('Plot Style'),                                  #0
                 html.Label('Color (RGB)'),                              #1
-                dcc.Input(type='number',                                #2
+                dcc.Input(id={'type': 'red-input',                      #2
+                              'index': 3},
+                          type='number',
                           min=0,
                           max=255,
                           value=125),
-                dcc.Input(type='number',                                #3
+                dcc.Input(id={'type': 'grn-input',                      #3
+                              'index': 3},
+                          type='number',
                           min=0,
                           max=255,
                           value=255),
-                dcc.Input(type='number',                                #4
+                dcc.Input(id={'type': 'blu-input',                      #4
+                              'index': 3},
+                          type='number',
                           min=0,
                           max=255,
                           value=125),
                 html.H3('Starting Orbit'),                              #5
                 html.Label('Starting Body'),                            #6
-                dcc.Dropdown(                                           #7
-                    value = 'Duna',
-                    options = startBody_options(kerbol_system)
+                dcc.Dropdown(value = 'Duna',                            #7
+                             options = startBody_options(kerbol_system)
                     ),
                 html.Label('Semi-major axis (m)'),                      #8
-                dcc.Input(type='number',                                #9
+                dcc.Input(id={'type': 'sma-input',                      #9
+                              'index': 3},
+                          type='number',
                           value = 420000),
                 html.Label('Eccentricity'),                             #10
-                dcc.Input(type='number',                                #11
+                dcc.Input(id={'type': 'ecc-input',                      #11
+                              'index': 3},
+                          type='number',
                           value = 0),
                 html.Label('Inclination (°)'),                          #12
-                dcc.Input(type='number',                                #13
+                dcc.Input(id={'type': 'inc-input',                      #13
+                              'index': 3},
+                          type='number',
                           value = 0),
                 html.Label('Argument of the Periapsis (°)'),            #14
-                dcc.Input(type='number',                                #15
+                dcc.Input(id={'type': 'argp-input',                     #15
+                              'index': 3},
+                          type='number',
                           value = 0),
                 html.Label('Longitude of the Ascending Node (°)'),      #16
-                dcc.Input(type='number',                                #17
+                dcc.Input(id={'type': 'lan-input',                      #17
+                              'index': 3},
+                          type='number',
                           value = 0),
                 html.Label('Mean anomaly at epoch (radians)'),          #18
-                dcc.Input(type='number',                                #19
+                dcc.Input(id={'type': 'mo-input',                       #19
+                              'index': 3},
+                          type='number',
                           value = 0),
                 html.Label('Epoch (s)'),                                #20
-                dcc.Input(type='number',                                #21
+                dcc.Input(id={'type': 'epc-input',                      #21
+                              'index': 3},
+                          type='number',
                           value = 0),
         
                 html.H3('Maneuver Nodes'),                              #22
@@ -398,6 +455,12 @@ app.layout = html.Div(className='row', children=[
              children=jsonpickle.encode(kerbol_system)),
     html.Div(id='numManeuverNodes-div', style={'display': 'none'},
              children=[3,2,0]),
+    html.Div(id='orbitStartTimes-div', style={'display': 'none'},
+             children=[]),
+    html.Div(id='orbitEndTimes-div', style={'display': 'none'},
+             children=[]),
+    html.Div(id='plotSystems-div', style={'display': 'none'},
+             children=[]),
     ])
 
 #%% callbacks
@@ -486,17 +549,22 @@ def update_vessel_tabs(numVessels, numsNodes, prevVesselTabs, prevTabVal, system
                     value='vessel' + str(jj+prevNumVessels+1), 
                     children=[
                 html.H3('Plot Style'),                                  #0
-                # doesn't do anything yet
                 html.Label('Color (RGB)'),                              #1
-                dcc.Input(type='number',                                #2
+                dcc.Input(id={'type': 'red-input',                      #2
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           min=0,
                           max=255,
                           value=255),
-                dcc.Input(type='number',                                #3
+                dcc.Input(id={'type': 'grn-input',                      #3
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           min=0,
                           max=255,
                           value=255),
-                dcc.Input(type='number',                                #4
+                dcc.Input(id={'type': 'blu-input',                      #4
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           min=0,
                           max=255,
                           value=255),
@@ -506,25 +574,39 @@ def update_vessel_tabs(numVessels, numsNodes, prevVesselTabs, prevTabVal, system
                     options = startBody_options(system)
                     ),
                 html.Label('Semi-major axis (m)'),                      #8
-                dcc.Input(type='number',                                #9
+                dcc.Input(id={'type': 'sma-input',                      #9
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           value = 0),
                 html.Label('Eccentricity'),                             #10
-                dcc.Input(type='number',                                #11
+                dcc.Input(id={'type': 'ecc-input',                      #11
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           value = 0),
                 html.Label('Inclination (°)'),                          #12
-                dcc.Input(type='number',                                #13
+                dcc.Input(id={'type': 'inc-input',                      #13
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           value = 0),
                 html.Label('Argument of the Periapsis (°)'),            #14
-                dcc.Input(type='number',                                #15
+                dcc.Input(id={'type': 'argp-input',                     #15
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           value = 0),
                 html.Label('Longitude of the Ascending Node (°)'),      #16
-                dcc.Input(type='number',                                #17
+                dcc.Input(id={'type': 'lan-input',                      #17
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           value = 0),
                 html.Label('Mean anomaly at epoch (radians)'),          #18
-                dcc.Input(type='number',                                #19
+                dcc.Input(id={'type': 'mo-input',                       #19
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           value = 0),
                 html.Label('Epoch (s)'),                                #20
-                dcc.Input(type='number',                                #21
+                dcc.Input(id={'type': 'epc-input',                      #21
+                              'index': jj+prevNumVessels+1},
+                          type='number',
                           value = 0),
         
                 html.H3('Maneuver Nodes'),                              #22
@@ -695,17 +777,16 @@ def update_orbits(nClicks, system, vesselTabs,
 
 @app.callback(
     [Output('conic-tabs','children'),
-     Output('conic-tabs', 'value')],
-    [Input('orbits-div','children'),
-     Input('dateFormat-div','children'),
-     Input('display-checklist', 'value')],
+     Output('conic-tabs', 'value'),
+     Output('orbitStartTimes-div', 'children'),
+     Output('orbitEndTimes-div', 'children'),
+     Output('plotSystems-div', 'children')],
+    [Input('orbits-div','children')],
     [State('startTime-input','value'),
      State('endTime-input','value'),
-     State('conic-tabs', 'value'),
-     State('vessel-tabs', 'children')]
+     State('conic-tabs', 'value')]
     )
-def update_graphs(orbitsTimes, dateFormat, displays, startTime, endTime,
-                  tabVal, vesselTabs):
+def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
     
     if orbitsTimes is None:
         return dash.no_update
@@ -718,27 +799,16 @@ def update_graphs(orbitsTimes, dateFormat, displays, startTime, endTime,
     tabs = []
     figs = []
     systems = []
+    sliderStartTimes = []
+    sliderEndTimes = []
+    orbitStartTimes = []
+    orbitEndTimes = []
     
     for nn in range(len(vesselOrbitsTimes[0])):
         orbits = vesselOrbitsTimes[0][nn]
         times = vesselOrbitsTimes[1][nn]
-    
-        color = (                                                           \
-            vesselTabs[nn]['props']['children'][2]['props']['value'],       \
-            vesselTabs[nn]['props']['children'][3]['props']['value'],       \
-            vesselTabs[nn]['props']['children'][4]['props']['value']        \
-                )
-        
-        # prepare maneuver nodes
-        nodesChildren = vesselTabs[nn]['props']['children'][25]['props']['children']
-        nodeBurns = []
-        nodeTimes = []
-        for kk in range(int(len(nodesChildren)/5)):
-            nodeBurns.append([nodesChildren[5*kk+1]["props"]["value"],
-                              nodesChildren[5*kk+2]["props"]["value"],
-                              nodesChildren[5*kk+3]["props"]["value"],
-                              ])
-            nodeTimes.append(nodesChildren[5*kk+4]['props']['value'])
+        sTimes = []
+        eTimes = []
         
         eTime = None
         for ii in range(len(orbits)):
@@ -795,31 +865,33 @@ def update_graphs(orbitsTimes, dateFormat, displays, startTime, endTime,
                         eTime = endTime
                 if orb.prim.name in systems:
                     figIdx = systems.index(orb.prim.name)
+                    if sTime < sliderStartTimes[figIdx]:
+                        sliderStartTimes[figIdx] = sTime
+                    if eTime > sliderEndTimes[figIdx]:
+                        sliderEndTimes[figIdx] = eTime
                 else:
                     figs.append(go.Figure())
                     systems.append(orb.prim.name)
+                    sliderStartTimes.append(sTime)
+                    sliderEndTimes.append(eTime)
                     figIdx = -1
-                    lim = plot_system(figs[figIdx], orb.prim, times[ii],            \
-                          dateFormat, displays);
-                    set_trajectory_plot_layout(figs[figIdx], lim, 1.5*abs(orb.a)/lim, orb.prim.name)
                 
-                if 'orbits' in displays:
-                    add_orbit(figs[figIdx], orb, sTime, eTime, 201,
-                          dateFormat, 'apses' in displays, 'nodes' in displays,
-                          fullPeriod=False, color=color, name='Conic '+str(ii+1),
-                          style='solid', fade=True)
-                
-                # add burn arrows
-                if (eTime in nodeTimes) and ('arrows' in displays):
-                    burnIdx = nodeTimes.index(eTime)
-                    burnDV = nodeBurns[burnIdx]
-                    add_burn_arrow(figs[figIdx], burnDV, eTime, orb, dateFormat,
-                                   1/2, 'Burn'+str(burnIdx+1), (255,0,0), False)
+                # save start and end times for each orbit
+                sTimes.append(sTime)
+                eTimes.append(eTime)
                 
                 if not endTime is None:
                     if eTime >= endTime:
                         break
-        
+            
+            else:
+                # save start and end times for each orbit
+                sTimes.append(None)
+                eTimes.append(None)
+                
+        orbitStartTimes.append(sTimes)
+        orbitEndTimes.append(eTimes)
+    
     for jj in range(len(figs)):
         
         # create downloadable HTML file of plot
@@ -829,23 +901,116 @@ def update_graphs(orbitsTimes, dateFormat, displays, startTime, endTime,
         figs[jj].write_html(path)
         
         tabs.append(dcc.Tab(label=str(systems[jj])+' system',
-                           value=str(systems[jj])+'-tab',
-                           children=[dcc.Graph(
-                                           id=str(systems[jj])+'-graph',
-                                           figure=figs[jj]),
-                            html.A(children=html.Button('Download'),
-                                   id='Conic'+str(jj+1)+'-download',
-                                   download='Conic'+str(jj+1)+'.html',
-                                   href=location,
-                                   target="_blank"),
+                            value=str(systems[jj])+'-tab',
+                            children=[
+                                dcc.Graph(
+                                    id={'type': 'system-graph',
+                                        'index': jj},
+                                    figure=figs[jj]),
+                                dcc.Slider(
+                                    id={'type': 'plotTime-slider',
+                                        'index': jj},
+                                    min=sliderStartTimes[jj],
+                                    max=sliderEndTimes[jj],
+                                    step=1,
+                                    marks = dict(),
+                                    value=0,
+                                    included=False,
+                                    updatemode='mouseup'
+                                    ),
+                                html.A(children=html.Button('Download'),
+                                       id={'type': 'download-button',
+                                           'index': jj},
+                                       download='Conic'+str(jj+1)+'.html',
+                                       href=location,
+                                       target="_blank"),
                             ]
                                ))
         
     if not (tabVal[0:-4] in systems):
         tabVal = systems[0]+'-tab'
     
-    return tabs, tabVal
+    return tabs, tabVal, orbitStartTimes, orbitEndTimes, systems
 
+@app.callback(
+     Output({'type': 'system-graph', 'index': MATCH}, 'figure'),
+    [Input({'type': 'plotTime-slider', 'index': MATCH}, 'value')],
+    [State('orbits-div','children'),
+     State('orbitStartTimes-div','children'),
+     State('orbitEndTimes-div', 'children'),
+     State('plotSystems-div', 'children'),
+     State('vessel-tabs', 'children'),
+     State('dateFormat-div','children'),
+     State('display-checklist', 'value'),
+     State('system-div', 'children'),
+     State({'type': 'system-graph', 'index': MATCH}, 'figure')],
+    )
+def update_graph_times(sliderTime, orbitsTimes, orbitStartTimes, orbitEndTimes,
+                       plotSystems, vesselTabs,
+                       dateFormat, displays, system, prevFig):
+    
+    figIdx = dash.callback_context.inputs_list[0]['id']['index']
+    vesselOrbitsTimes = jsonpickle.decode(orbitsTimes)
+    system = jsonpickle.decode(system)
+    
+    primaryBody = [x for x in system if x.name == plotSystems[figIdx]][0]
+    
+    fig = go.Figure()
+    lim = plot_system(fig, primaryBody, sliderTime,                         \
+                      dateFormat, displays);
+    set_trajectory_plot_layout(fig, lim, uirev = primaryBody.name)
+    
+    for nn in range(len(vesselOrbitsTimes[0])):
+        
+        # prepare color
+        color = (                                                           \
+            vesselTabs[nn]['props']['children'][2]['props']['value'],       \
+            vesselTabs[nn]['props']['children'][3]['props']['value'],       \
+            vesselTabs[nn]['props']['children'][4]['props']['value']        \
+                )
+        
+        # prepare maneuver nodes
+        nodesChildren = vesselTabs[nn]['props']['children'][25]['props']['children']
+        nodeBurns = []
+        nodeTimes = []
+        for kk in range(int(len(nodesChildren)/5)):
+            nodeBurns.append([nodesChildren[5*kk+1]["props"]["value"],
+                              nodesChildren[5*kk+2]["props"]["value"],
+                              nodesChildren[5*kk+3]["props"]["value"],
+                              ])
+            nodeTimes.append(nodesChildren[5*kk+4]['props']['value'])
+        
+        orbits = vesselOrbitsTimes[0][nn]
+        sTimes = orbitStartTimes[nn]
+        eTimes = orbitEndTimes[nn]
+        
+        for ii in range(len(orbits)):
+            orb = orbits[ii]
+            sTime = sTimes[ii]
+            eTime = eTimes[ii]
+            if (not ((sTime is None) or (eTime is None))                     \
+                and orb.prim.name==primaryBody.name):
+                
+                # draw orbits
+                if 'orbits' in displays:
+                    add_orbit(fig, orb, sTime, eTime, 201,
+                          dateFormat, 'apses' in displays, 'nodes' in displays,
+                          fullPeriod=False, color=color, name='Conic '+str(ii+1),
+                          style='solid', fade=True)
+                
+                # add burn arrows
+                if (eTime in nodeTimes) and ('arrows' in displays):
+                    burnIdx = nodeTimes.index(eTime)
+                    burnDV = nodeBurns[burnIdx]
+                    add_burn_arrow(fig, burnDV, eTime, orb, dateFormat,
+                                   1/2, 'Burn'+str(burnIdx+1), (255,0,0), False)
+                
+                # add vessel marker
+                if (sTime<sliderTime) and (sliderTime<eTime):
+                    vessel = Body('Vessel'+str(nn+1),0,0,0,orb,color=color)
+                    add_body(fig, vessel, sliderTime, False, size = 4, symbol = 'square')
+    
+    return fig
 
 #%% run app
 
