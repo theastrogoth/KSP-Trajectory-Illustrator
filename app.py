@@ -720,7 +720,7 @@ def update_orbits(nClicks, system, vesselTabs,
             nodeTimes.append(nodesChildren[5*ii+4]['props']['value'])
         
         orbits = [sOrb]
-        times = [startEpoch]
+        times = [0]
         if len(nodeTimes)>0:
             if nodeTimes[0] < startEpoch:
                 times = [nodeTimes[0]-1]
@@ -984,8 +984,9 @@ def update_graphs(sliderTime, orbitsTimes, orbitStartTimes, orbitEndTimes,
             orb = orbits[ii]
             sTime = sTimes[ii]
             eTime = eTimes[ii]
-            if (not ((sTime is None) or (eTime is None))                     \
-                and orb.prim.name==primaryBody.name):
+            
+            if not ((sTime is None) or (eTime is None)) and                 \
+               orb.prim.name==primaryBody.name:
                 
                 # draw orbits
                 if 'orbits' in displays:
@@ -999,12 +1000,33 @@ def update_graphs(sliderTime, orbitsTimes, orbitStartTimes, orbitEndTimes,
                     burnIdx = nodeTimes.index(eTime)
                     burnDV = nodeBurns[burnIdx]
                     add_burn_arrow(fig, burnDV, eTime, orb, dateFormat,
-                                   1/2, 'Burn'+str(burnIdx+1), (255,0,0), False)
+                                   1/2, 'Burn'+str(burnIdx+1), color, False)
                 
                 # add vessel marker
-                if (sTime<sliderTime) and (sliderTime<eTime):
+                if (sTime<sliderTime) and ((sliderTime<eTime) or ((ii==len(orbits)-1) and (orb.ecc<1))):
                     vessel = Body('Vessel'+str(nn+1),0,0,0,orb,color=color)
                     add_body(fig, vessel, sliderTime, False, size = 4, symbol = 'square')
+    
+            elif (ii==len(orbits)-1) and (orb.ecc<1) and                            \
+                 orb.prim.name==primaryBody.name:
+                
+                # draw orbits
+                if 'orbits' in displays:
+                    add_orbit(fig, orb, sliderTime, sliderTime+orb.get_period(), 201,
+                          dateFormat, 'apses' in displays, 'nodes' in displays,
+                          fullPeriod=False, color=color, name='Conic '+str(ii+1),
+                          style='solid', fade=True)
+                
+                # add burn arrows
+                if (eTime in nodeTimes) and ('arrows' in displays):
+                    burnIdx = nodeTimes.index(eTime)
+                    burnDV = nodeBurns[burnIdx]
+                    add_burn_arrow(fig, burnDV, eTime, orb, dateFormat,
+                                   1/2, 'Burn'+str(burnIdx+1), color, False)
+                
+                # add vessel marker
+                vessel = Body('Vessel'+str(nn+1),0,0,0,orb,color=color)
+                add_body(fig, vessel, sliderTime, False, size = 4, symbol = 'square')
     
     # create downloadable HTML file of plot
     filename = 'System'+str(figIdx+1)+'.html'
