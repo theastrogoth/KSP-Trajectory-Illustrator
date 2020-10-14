@@ -91,7 +91,9 @@ app.layout = html.Div(className='row', children=[
                   min = 0),
         html.Label('Start time (s)'),
         dcc.Input(id = 'startTime-input',  
-                  type='number'),
+                  type='number',
+                  min = 0,
+                  value = 4510000),
         html.Label('End time (s)'),
         dcc.Input(id = 'endTime-input',  
                   type='number'),
@@ -903,6 +905,15 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
                                     id={'type': 'system-graph',
                                         'index': jj},
                                     figure=blankFig),
+                                html.Label('Universal Time (s)'),
+                                dcc.Input(
+                                    id={'type': 'plotTime-input',
+                                        'index': jj},
+                                    type='number',
+                                    value = math.ceil(sliderStartTimes[jj])+1,
+                                    min=math.ceil(sliderStartTimes[jj])+1,
+                                    max=math.floor(sliderEndTimes[jj])-1,
+                                    ),
                                 dcc.Slider(
                                     id={'type': 'plotTime-slider',
                                         'index': jj},
@@ -1035,6 +1046,30 @@ def update_graphs(sliderTime, orbitsTimes, orbitStartTimes, orbitEndTimes,
     fig.write_html(path)
     
     return fig, location
+
+@app.callback(
+     Output({'type': 'plotTime-input', 'index': MATCH}, 'value'),
+    [Input({'type': 'plotTime-slider', 'index': MATCH}, 'value')],
+    [State({'type': 'plotTime-input', 'index': MATCH}, 'value')],
+    )
+def update_plot_input_time(sliderTime, prevInputTime):
+    
+    if sliderTime == prevInputTime:
+        return dash.no_update
+    
+    return sliderTime
+
+@app.callback(
+     Output({'type': 'plotTime-slider', 'index': MATCH}, 'value'),
+    [Input({'type': 'plotTime-input', 'index': MATCH}, 'value')],
+    [State({'type': 'plotTime-slider', 'index': MATCH}, 'value')],
+    )
+def update_plot_slider_time(inputTime, prevSliderTime):
+    
+    if prevSliderTime == inputTime:
+        return dash.no_update
+    
+    return inputTime
 
 #%% run app
 
