@@ -796,8 +796,11 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
     if startTime is None:
         startTime = 0
     
+    blankFig = go.Figure(layout = dict(
+               xaxis = dict(visible=False),
+               yaxis = dict(visible=False))),
+    
     tabs = []
-    figs = []
     systems = []
     sliderStartTimes = []
     sliderEndTimes = []
@@ -870,7 +873,6 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
                     if eTime > sliderEndTimes[figIdx]:
                         sliderEndTimes[figIdx] = eTime
                 else:
-                    figs.append(go.Figure())
                     systems.append(orb.prim.name)
                     sliderStartTimes.append(sTime)
                     sliderEndTimes.append(eTime)
@@ -892,13 +894,7 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
         orbitStartTimes.append(sTimes)
         orbitEndTimes.append(eTimes)
     
-    for jj in range(len(figs)):
-        
-        # create downloadable HTML file of plot
-        filename = 'System'+str(jj+1)+'.html'
-        path = os.path.join(DOWNLOAD_DIRECTORY, filename)
-        location = "/download/{}".format(urlquote(filename))
-        figs[jj].write_html(path)
+    for jj in range(len(systems)):
         
         tabs.append(dcc.Tab(label=str(systems[jj])+' system',
                             value=str(systems[jj])+'-tab',
@@ -906,15 +902,15 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
                                 dcc.Graph(
                                     id={'type': 'system-graph',
                                         'index': jj},
-                                    figure=figs[jj]),
+                                    figure=blankFig),
                                 dcc.Slider(
                                     id={'type': 'plotTime-slider',
                                         'index': jj},
-                                    min=sliderStartTimes[jj],
-                                    max=sliderEndTimes[jj],
+                                    min=math.ceil(sliderStartTimes[jj])+1,
+                                    max=math.floor(sliderEndTimes[jj])-1,
                                     step=1,
                                     marks = dict(),
-                                    value=0,
+                                    value=math.ceil(sliderStartTimes[jj])+1,
                                     included=False,
                                     updatemode='mouseup'
                                     ),
@@ -922,7 +918,6 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
                                        id={'type': 'download-button',
                                            'index': jj},
                                        download='Conic'+str(jj+1)+'.html',
-                                       href=location,
                                        target="_blank"),
                             ]
                                ))
@@ -933,7 +928,8 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
     return tabs, tabVal, orbitStartTimes, orbitEndTimes, systems
 
 @app.callback(
-     Output({'type': 'system-graph', 'index': MATCH}, 'figure'),
+    [Output({'type': 'system-graph', 'index': MATCH}, 'figure'),
+     Output({'type': 'download-button', 'index': MATCH}, 'href')],
     [Input({'type': 'plotTime-slider', 'index': MATCH}, 'value')],
     [State('orbits-div','children'),
      State('orbitStartTimes-div','children'),
@@ -945,9 +941,9 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
      State('system-div', 'children'),
      State({'type': 'system-graph', 'index': MATCH}, 'figure')],
     )
-def update_graph_times(sliderTime, orbitsTimes, orbitStartTimes, orbitEndTimes,
-                       plotSystems, vesselTabs,
-                       dateFormat, displays, system, prevFig):
+def update_graphs(sliderTime, orbitsTimes, orbitStartTimes, orbitEndTimes,
+                  plotSystems, vesselTabs,
+                  dateFormat, displays, system, prevFig):
     
     figIdx = dash.callback_context.inputs_list[0]['id']['index']
     vesselOrbitsTimes = jsonpickle.decode(orbitsTimes)
@@ -1010,7 +1006,13 @@ def update_graph_times(sliderTime, orbitsTimes, orbitStartTimes, orbitEndTimes,
                     vessel = Body('Vessel'+str(nn+1),0,0,0,orb,color=color)
                     add_body(fig, vessel, sliderTime, False, size = 4, symbol = 'square')
     
-    return fig
+    # create downloadable HTML file of plot
+    filename = 'System'+str(figIdx+1)+'.html'
+    path = os.path.join(DOWNLOAD_DIRECTORY, filename)
+    location = "/download/{}".format(urlquote(filename))
+    fig.write_html(path)
+    
+    return fig, location
 
 #%% run app
 
