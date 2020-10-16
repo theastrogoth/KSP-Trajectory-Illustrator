@@ -941,23 +941,26 @@ def create_vessels_from_persistence_file(persistenceFile, system):
         epoch = float(sfsVessel['ORBIT']['EPH'])
         primRef = float(sfsVessel['ORBIT']['REF'])
         prim = [bd for bd in system if bd.ref == primRef][0]
-        orb = Orbit(a, ecc, inc, argp, lan, mo, epoch, prim)
         
-        try:
-            sfsManeuverNodes = sfsVessel['FLIGHTPLAN']['MANEUVER']
-        except KeyError:
-            sfsManeuverNodes = []
-        maneuverNodes = []
-        for node in sfsManeuverNodes:
-            if len(node)>0:
-                dvStrings = node['dV'].split(',')
-                prograde = float(dvStrings[2])
-                normal = float(dvStrings[1])
-                radial = float(dvStrings[0])
-                time = float(node['UT'])
-                maneuverNodes.append([prograde,normal,radial,time])
+        if not a == 0:
+            orb = Orbit(a, ecc, inc, argp, lan, mo, epoch, prim)
         
-        vessels.append(Vessel(name, orb, maneuverNodes))
+            try:
+                sfsManeuverNodes = sfsVessel['FLIGHTPLAN']['MANEUVER']
+            except KeyError:
+                sfsManeuverNodes = []
+            maneuverNodes = []
+            for node in sfsManeuverNodes:
+                if isinstance(node, OrderedDict) and len(node)>0:
+                    if 'dV' in node.keys() and 'UT' in node.keys():
+                        dvStrings = node['dV'].split(',')
+                        prograde = float(dvStrings[2])
+                        normal = float(dvStrings[1])
+                        radial = float(dvStrings[0])
+                        time = float(node['UT'])
+                        maneuverNodes.append([prograde,normal,radial,time])
+            
+            vessels.append(Vessel(name, orb, maneuverNodes))
     
     vesselOptions = name_options(vessels)
     
