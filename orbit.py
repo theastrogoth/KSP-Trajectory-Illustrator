@@ -739,7 +739,7 @@ class Orbit:
                         thetaEscape = math.acos(
                             math.copysign(1, 1/self.ecc *                   \
                                           (self.a*(1-self.ecc**2)/soi - 1)))
-                    maxTime = self.get_time(thetaEscape)
+                    maxTime = self.get_time(thetaEscape, t)
                 else:
                     maxTime = t + self.get_period()
         
