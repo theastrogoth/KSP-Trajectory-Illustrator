@@ -35,6 +35,9 @@ app.title='KSP Trajectory Illustrator'
 infile = open('kerbol_system.json','r')
 kerbol_system = jsonpickle.decode(infile.read())
 infile.close
+infile = open('outer_planets_system.json','r')
+outer_planets_system = jsonpickle.decode(infile.read())
+infile.close
 infile = open('sol_system.json','r')
 sol_system = jsonpickle.decode(infile.read())
 infile.close
@@ -187,9 +190,10 @@ app.layout = html.Div(className='row', children=[
         dcc.RadioItems(
             id = 'system-radio',
             options=[
-                {'label': 'Kerbol', 'value': 'Kerbol'},
-                {'label': 'Sol', 'value': 'Sol'}],
-            value='Kerbol',
+                {'label': 'Kerbol (Stock)', 'value': 'stock'},
+                {'label': 'Kerbol (Outer Planets Mod)', 'value': 'opm'},
+                {'label': 'Sol (Real Solar System)', 'value': 'rss'}],
+            value='stock',
             ),
         html.Label('System Resize Factor'),
         dcc.Input(id = 'systemResize-input',  
@@ -310,6 +314,7 @@ app.layout = html.Div(className='row', children=[
     html.Div(id='allSystems-div', style = {'display': 'none'},
              children=[
                  jsonpickle.encode(kerbol_system),
+                 jsonpickle.encode(outer_planets_system),
                  jsonpickle.encode(sol_system)]),
     html.Div(id='system-div', style={'display': 'none',}, 
              children=jsonpickle.encode(kerbol_system)),
@@ -359,13 +364,16 @@ def set_date_format(selected_format, resizeFactor, rescaleFactor, dayFactor):
     [Input('system-radio','value'),
      Input('systemResize-input','value'),
      Input('systemRescale-input','value')],
-    [State('allSystems-div', 'children')]
+    [State('allSystems-div', 'children')],
+    prevent_initial_call=True
     )
 def set_system(system_name, resizeFactor, rescaleFactor, all_systems):
-    if system_name == 'Kerbol':
+    if system_name == 'stock':
         system = jsonpickle.decode(all_systems[0])
-    elif system_name == 'Sol':
+    elif system_name == 'opm':
         system = jsonpickle.decode(all_systems[1])
+    elif system_name == 'rss':
+        system = jsonpickle.decode(all_systems[2])
     else:
         return dash.no_update, dash.no_update
     
@@ -373,6 +381,10 @@ def set_system(system_name, resizeFactor, rescaleFactor, all_systems):
         body.resize(resizeFactor)
         body.rescale(rescaleFactor)
     
+    ctx = dash.callback_context
+    print(ctx.triggered)
+    print('updated')
+    print([bd.name for bd in system])
     return jsonpickle.encode(system)
 
 @app.callback(
@@ -730,6 +742,9 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
     
     for jj in range(len(systems)):
         
+        if systems[jj] == 'Sun':
+            systems[jj] = 'Solar'
+        
         tabs.append(dcc.Tab(label=str(systems[jj])+' system',
                             value=str(systems[jj])+'-tab',
                             children=[
@@ -777,26 +792,29 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
     [Output({'type': 'system-graph', 'index': MATCH}, 'figure'),
      Output({'type': 'download-button', 'index': MATCH}, 'href')],
     [Input({'type': 'plotTime-slider', 'index': MATCH}, 'value'),
-     Input('display-checklist','value')],
+     Input('display-checklist','value'),
+     Input('dateFormat-div','children')],
     [State('orbits-div','children'),
      State('orbitStartTimes-div','children'),
      State('orbitEndTimes-div', 'children'),
      State('plotSystems-div', 'children'),
      State('vessel-tabs', 'children'),
-     State('dateFormat-div','children'),
      State('system-div', 'children'),
      State({'type': 'system-graph', 'index': MATCH}, 'figure')],
     )
-def update_graphs(sliderTime, displays, 
+def update_graphs(sliderTime, displays, dateFormat,
                   orbitsTimes, orbitStartTimes, orbitEndTimes,
                   plotSystems, vesselTabs,
-                  dateFormat, system, prevFig):
+                  system, prevFig):
     
     figIdx = dash.callback_context.inputs_list[0]['id']['index']
     vesselOrbitsTimes = jsonpickle.decode(orbitsTimes)
     system = jsonpickle.decode(system)
     
-    primaryBody = [x for x in system if x.name == plotSystems[figIdx]][0]
+    primaryName = plotSystems[figIdx]
+    if primaryName == 'Solar':
+        primaryName = 'Sun'
+    primaryBody = [x for x in system if x.name == primaryName][0]
     
     fig = go.Figure()
     lim = plot_system(fig, primaryBody, sliderTime,                         \
@@ -939,8 +957,13 @@ def create_vessels_from_persistence_file(persistenceFile, system):
         lan = float(sfsVessel['ORBIT']['LAN'])
         mo = float(sfsVessel['ORBIT']['MNA'])
         epoch = float(sfsVessel['ORBIT']['EPH'])
-        primRef = float(sfsVessel['ORBIT']['REF'])
-        prim = [bd for bd in system if bd.ref == primRef][0]
+        if 'IDENT' in list(sfsVessel['ORBIT'].keys()):
+            primName = sfsVessel['ORBIT']['IDENT']
+            primName = primName.replace('Squad/','')
+            prim = [bd for bd in system if bd.name == primName][0]
+        else:
+            primRef = float(sfsVessel['ORBIT']['REF'])
+            prim = [bd for bd in system if bd.ref == primRef][0]
         
         if not a == 0:
             orb = Orbit(a, ecc, inc, argp, lan, mo, epoch, prim)
