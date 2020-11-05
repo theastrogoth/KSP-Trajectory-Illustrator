@@ -24,10 +24,10 @@ DOWNLOAD_DIRECTORY = "/tmp/app_generated_files"
 if not os.path.exists(DOWNLOAD_DIRECTORY):
     os.makedirs(DOWNLOAD_DIRECTORY)
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+#external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 server = Flask(__name__)
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets,
+app = dash.Dash(__name__, # external_stylesheets=external_stylesheets,
                 server=server)
 
 app.title='KSP Trajectory Illustrator'
@@ -62,6 +62,7 @@ def make_new_vessel_tab(label, index, system,
     
     newTab = dcc.Tab(label=label,
                     value=label, 
+                    className='control-tab',
                     children=[
                 html.H3('Plot Style'),                                  #0
                 html.Label('Color (RGB)'),                              #1
@@ -173,7 +174,8 @@ def serve_static(path):
 
 #%% app layout
 
-app.layout = html.Div(className='row', children=[
+app.layout = html.Div(id='kspti-body', children = [
+  html.Div(className='row', children=[
     html.Div(className='four columns', children=[
         html.H3('Settings'),
         html.Label('Date Format'),
@@ -282,7 +284,7 @@ app.layout = html.Div(className='row', children=[
     
     
     html.Div(className='four columns', children=[
-        dcc.Tabs(id='vessel-tabs', value='Vessel 1', children=[
+        dcc.Tabs(id='vessel-tabs', className='control-tabs', value='Vessel 1', children=[
             make_new_vessel_tab('Vessel 1', 1, kerbol_system,
                                 'Kerbin', 700000,0,0,0,0,0,4510000,
                                 [[1054.39,0,0,4519600.550],
@@ -314,13 +316,11 @@ app.layout = html.Div(className='row', children=[
                 ],
             labelStyle={'display': 'inline-block'},
             ),
-        dcc.Tabs(id='graph-tabs', value='blank', children=[
-            dcc.Tab(label='Plots will be generated here', value='blank', children=[
+        dcc.Tabs(id='graph-tabs', className='control-tabs', value='blank', children=[
+            dcc.Tab(label='Plots will be generated here', className='control-tab', value='blank', children=[
                 dcc.Graph(
                     id='blank',
-                    figure = go.Figure(layout = dict(
-                                        xaxis = dict(visible=False),
-                                        yaxis = dict(visible=False))),
+                    figure = blank_plot(),
                     )
                 ])
             ])
@@ -353,6 +353,7 @@ app.layout = html.Div(className='row', children=[
     html.Div(id='persistenceVessels-div', style={'display': 'none'},
              children=[]),
     ])
+  ])
 
 #%% callbacks
 @app.callback(
@@ -683,9 +684,7 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
     if startTime is None:
         startTime = 0
     
-    blankFig = go.Figure(layout = dict(
-               xaxis = dict(visible=False),
-               yaxis = dict(visible=False))),
+    blankFig = blank_plot(),
     
     tabs = []
     systems = []
@@ -787,6 +786,7 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
             systems[jj] = 'Solar'
         
         tabs.append(dcc.Tab(label=str(systems[jj])+' system',
+                            className='control-tab',
                             value=str(systems[jj])+'-tab',
                             children=[
                                 dcc.Graph(
