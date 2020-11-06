@@ -26,7 +26,7 @@ body {
     display: none;
 }
 
-#kspti-control-tabs, #kspti-control-tabs .tab {
+#kspti-body, #kspti-body .tab {
     background-color: #1E1E1E !important;
 }
 #kspti-body .control-tab {
