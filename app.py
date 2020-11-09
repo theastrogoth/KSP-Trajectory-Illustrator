@@ -79,7 +79,7 @@ def make_new_vessel_tab(label, index, system,
                 dcc.Input(id={'type': 'name-input',                     #3
                               'index': index},
                           type='text',
-                          value='Vessel ' + str(index)),
+                          value=label,
                 html.Label('Color (RGB)'),                              #4
                 dcc.Input(id={'type': 'red-input',                      #5
                               'index': index},
