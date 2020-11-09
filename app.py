@@ -50,6 +50,23 @@ def name_options(objectList):
         nameOptions.append(ob.name) 
     return [{'label': i, 'value': i} for i in nameOptions]
 
+def add_maneuver_node(nodesList, num, burn=None):
+    if burn is None:
+        burn = [None, None, None, None]
+    nodesList.append(html.Label('Maneuver node '+str(num)))
+    nodesList.append(dcc.Input(type='number',
+                               placeholder='Prograde (m/s)',
+                               value=burn[0]))
+    nodesList.append(dcc.Input(type='number',
+                               placeholder='Normal (m/s)',
+                               value=burn[1]))
+    nodesList.append(dcc.Input(type='number',
+                               placeholder='Radial (m/s)',
+                               value=burn[2]))
+    nodesList.append(dcc.Input(type='number',
+                               placeholder='UT (s)',
+                               value=burn[3]))
+
 def make_new_vessel_tab(label, index, system,
                         primName=None, a=0, ecc=0, inc=0, argp=0, lan=0,
                         mo=0, epoch=0,
@@ -150,34 +167,14 @@ def make_new_vessel_tab(label, index, system,
                           value = numNodes,
                           min = 0,
                           step = 1),
-                html.Div(children=[]                                    #28
+                html.Div(id={'type': 'nodes-div',                      #28
+                             'index': index},
+                         children=[]
                     ),
                 ])
     
     for ii in range(numNodes):
-        newTab.children[28].children.append(
-            html.Label('Maneuver node ' + str(ii+1)),       #0
-            )
-        newTab.children[28].children.append(
-            dcc.Input(type='number',                        #1
-                      placeholder='Prograde (m/s)',
-                      value=maneuverNodes[ii][0]),
-            )
-        newTab.children[28].children.append(
-            dcc.Input(type='number',                        #2
-                      placeholder='Normal (m/s)',
-                      value=maneuverNodes[ii][1]),
-            )
-        newTab.children[28].children.append(
-            dcc.Input(type='number',                        #3
-                      placeholder='Radial (m/s)',
-                      value=maneuverNodes[ii][2]),
-            )
-        newTab.children[28].children.append(
-            dcc.Input(type='number',                        #4
-                      placeholder='UT (s)',
-                      value=maneuverNodes[ii][3]),
-            )
+        add_maneuver_node(newTab.children[28].children, ii+1, maneuverNodes[ii])
     
     return newTab
 
@@ -407,8 +404,6 @@ app.layout = html.Div(id='kspti-body', children = [
                  jsonpickle.encode(kerbol_system)]),
     html.Div(id='system-div', style={'display': 'none',}, 
              children=jsonpickle.encode(kerbol_system)),
-    html.Div(id='numManeuverNodes-div', style={'display': 'none'},
-             children=[3]),
     html.Div(id='orbitStartTimes-div', style={'display': 'none'},
              children=[]),
     html.Div(id='orbitEndTimes-div', style={'display': 'none'},
@@ -505,17 +500,6 @@ def update_num_vessels(numVessels, prevNumVessels):
         return numVessels
 
 @app.callback(
-     Output('numManeuverNodes-div','children'),
-    [Input({'type': 'numNodes-input', 'index': ALL}, 'value')],
-    [State('numManeuverNodes-div','children')],
-    )
-def update_num_maneuver_nodes(numsNodes, prevState):
-    if prevState == numsNodes:
-        return dash.no_update
-    else:
-        return numsNodes
-
-@app.callback(
      Output({'type': 'refBody-dropdown', 'index': MATCH}, 'options'),
     [Input('system-div', 'children')]
     )
@@ -531,11 +515,29 @@ def update_vessel_name(name):
     return name
 
 @app.callback(
+     Output({'type': 'nodes-div', 'index': MATCH}, 'children'),
+    [Input({'type': 'numNodes-input', 'index': MATCH}, 'value')],
+    [State({'type': 'nodes-div', 'index': MATCH}, 'children')]
+    )
+def update_num_nodes(numNodes, prevNodesChildren):
+    try:
+        prevNumNodes = int(len(prevNodesChildren)/5)
+    except:
+        prevNumNodes = 0
+    if numNodes < prevNumNodes:
+        newChildren = prevNodesChildren[0:5*(numNodes)]
+    elif numNodes > prevNumNodes:
+        newChildren = prevNodesChildren
+        for ii in range(numNodes-prevNumNodes):
+            add_maneuver_node(newChildren, ii+prevNumNodes)
+    
+    return newChildren
+
+@app.callback(
     [Output('vessel-tabs','children'),
      Output('vessel-tabs','value'),
      Output('numVessels-input','value')],
     [Input('numVessels-div','children'),
-     Input('numManeuverNodes-div','children'),
      Input('addPersistenceVessel-button','n_clicks'),
      Input('addVessel-button','n_clicks'),
      Input({'type': 'deleteVessel-button', 'index': ALL}, 'n_clicks')],
@@ -546,7 +548,7 @@ def update_vessel_name(name):
      State('persistenceVessels-div','children')],
     prevent_initial_call=True
     )
-def update_vessel_tabs(numVessels, numsNodes,
+def update_vessel_tabs(numVessels,
                        addFileVesselClicks, addVesselClicks, delVesselClicks,
                        prevVesselTabs, prevTabVal, system,
                        addVesselName, persistenceVessels):
@@ -575,8 +577,7 @@ def update_vessel_tabs(numVessels, numsNodes,
                                     vessel.maneuverNodes)
                 )
             numVessels = numVessels+1
-        
-        return vesselTabs, vessel.name, numVessels
+            tabVal = vessel.name
     
     elif 'deleteVessel-button' in ctx.triggered[0]['prop_id']:
         vesselTabs = prevVesselTabs
@@ -623,28 +624,6 @@ def update_vessel_tabs(numVessels, numsNodes,
     else:
         vesselTabs = prevVesselTabs
         tabVal = prevTabVal
-    
-    for ii, numNodes in enumerate(numsNodes[0:numVessels]):
-        try:
-            prevNumNodes = int(len(vesselTabs[ii]['props']['children'][28]['props']['children'])/5)
-        except:
-            prevNumNodes = int(len(vesselTabs[ii].children[28].children)/5)
-        if numNodes < prevNumNodes:
-            vesselTabs[ii]['props']['children'][28]['props']['children'] = \
-                vesselTabs[ii]['props']['children'][28]['props']['children'][0:5*(numNodes)];
-        elif numNodes > prevNumNodes:
-            for jj in range(numNodes-prevNumNodes):
-                vesselTabs[ii]['props']['children'][28]['props']['children'].append( \
-                    html.Label('Maneuver node '+str(jj+prevNumNodes+1)))
-                vesselTabs[ii]['props']['children'][28]['props']['children'].append( \
-                    dcc.Input(type='number',placeholder='Prograde (m/s)'));
-                vesselTabs[ii]['props']['children'][28]['props']['children'].append( \
-                    dcc.Input(type='number',placeholder='Normal (m/s)'));
-                vesselTabs[ii]['props']['children'][28]['props']['children'].append( \
-                    dcc.Input(type='number',placeholder='Radial (m/s)'));
-                vesselTabs[ii]['props']['children'][28]['props']['children'].append( \
-                    dcc.Input(type='number',placeholder='UT (s)'));
-    
     
     return vesselTabs, tabVal, numVessels
 
