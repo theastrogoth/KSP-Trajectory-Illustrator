@@ -380,12 +380,14 @@ app.layout = html.Div(id='kspti-body', children = [
                 ],
             labelStyle={'display': 'inline-block'},
             ),
-        dcc.Tabs(id='graph-tabs', className='control-tabs', value='blank', children=[
-            dcc.Tab(label='Plots will be generated here', className='control-tab', value='blank', children=[
-                dcc.Graph(
-                    id='blank',
-                    figure = blank_plot(),
-                    )
+        dcc.Loading(type='circle', children=[
+            dcc.Tabs(id='graph-tabs', className='control-tabs', value='blank', children=[
+                dcc.Tab(label='Plots will be generated here', className='control-tab', value='blank', children=[
+                    dcc.Graph(
+                        id='blank',
+                        figure = blank_plot(),
+                        )
+                    ])
                 ])
             ])
         ]),
