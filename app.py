@@ -92,89 +92,101 @@ def make_new_vessel_tab(label, index, system,
                             ),
                     ]),
                 html.H3('Plot Style'),                                  #1
-                html.Label('Name'),                                     #2
-                dcc.Input(id={'type': 'name-input',                     #3
-                              'index': index},
-                          type='text',
-                          value=label),
-                html.Label('Color (RGB)'),                              #4
-                dcc.Input(id={'type': 'red-input',                      #5
-                              'index': index},
-                          type='number',
-                          min=0,
-                          max=255,
-                          value=255),
-                dcc.Input(id={'type': 'grn-input',                      #6
-                              'index': index},
-                          type='number',
-                          min=0,
-                          max=255,
-                          value=255),
-                dcc.Input(id={'type': 'blu-input',                      #7
-                              'index': index},
-                          type='number',
-                          min=0,
-                          max=255,
-                          value=255),
-                html.H3('Starting Orbit'),                              #8
-                html.Label('Starting Body'),                            #9
-                dcc.Dropdown(id={'type': 'refBody-dropdown',            #10
+                html.Div(className='row', children = [                  #2
+                    html.Div(className='six columns', children=[      #0
+                        html.Label('Name'),                         #0
+                        dcc.Input(id={'type': 'name-input',         #1
+                                      'index': index},
+                                  type='text',
+                                  value=label),
+                        ]),
+                    html.Div(className='six columns', children=[     #1
+                        html.Label('Color (RGB)'),                #0
+                        dcc.Input(id={'type': 'red-input',        #1
+                                      'index': index},
+                                  type='number',
+                                  min=0,
+                                  max=255,
+                                  value=255),
+                        dcc.Input(id={'type': 'grn-input',        #2
+                                      'index': index},
+                                  type='number',
+                                  min=0,
+                                  max=255,
+                                  value=255),
+                        dcc.Input(id={'type': 'blu-input',        #3
+                                      'index': index},
+                                  type='number',
+                                  min=0,
+                                  max=255,
+                                  value=255),
+                        ]),
+                    ]),
+                html.Div(className='row', children = [                  #3
+                  html.Div(className='six columns', children=[        #0
+                    html.H3('Starting Orbit'),                      #0
+                    html.Label('Starting Body'),                    #1
+                    dcc.Dropdown(id={'type': 'refBody-dropdown',    #2
+                                     'index': index},
+                        options = name_options(system),
+                        value = primName,
+                        ),
+                    html.Label('Semi-major axis (m)'),              #3
+                    dcc.Input(id={'type': 'sma-input',              #4
+                                  'index': index},
+                              type='number',
+                              value = a),
+                    html.Label('Eccentricity'),                     #5
+                    dcc.Input(id={'type': 'ecc-input',              #6
+                                  'index': index},
+                              type='number',
+                              value = ecc),
+                    html.Label('Inclination (°)'),                  #7
+                    dcc.Input(id={'type': 'inc-input',              #8
+                                  'index': index},
+                              type='number',
+                              value = inc),
+                    html.Label('Argument of the Periapsis (°)'),    #9
+                    dcc.Input(id={'type': 'argp-input',            #10
+                                  'index': index},
+                              type='number',
+                              value = argp),
+                    html.Label('Longitude of the Ascending Node (°)'),
+                                                                   #11
+                    dcc.Input(id={'type': 'lan-input',             #12
+                                  'index': index},
+                              type='number',
+                              value = lan),
+                    html.Label('Mean anomaly at epoch (radians)'), #13
+                    dcc.Input(id={'type': 'mo-input',              #14
+                                  'index': index},
+                              type='number',
+                              value = mo),
+                    html.Label('Epoch (s)'),                       #15
+                    dcc.Input(id={'type': 'epc-input',             #16
+                                  'index': index},
+                              type='number',
+                              value = epoch),
+                    ]),
+                html.Div(className='six columns', children=[         #1
+                    html.H3('Maneuver Nodes'),                     #0
+                    html.Label('Number of maneuver nodes'),        #1
+                    dcc.Input(id={'type': 'numNodes-input',        #2
+                                  'index': index},
+                              type = 'number',
+                              value = numNodes,
+                              min = 0,
+                              step = 1),
+                    html.Div(id={'type': 'nodes-div',              #3
                                  'index': index},
-                    options = name_options(system),
-                    value = primName,
-                    ),
-                html.Label('Semi-major axis (m)'),                      #11
-                dcc.Input(id={'type': 'sma-input',                      #12
-                              'index': index},
-                          type='number',
-                          value = a),
-                html.Label('Eccentricity'),                             #13
-                dcc.Input(id={'type': 'ecc-input',                      #14
-                              'index': index},
-                          type='number',
-                          value = ecc),
-                html.Label('Inclination (°)'),                          #15
-                dcc.Input(id={'type': 'inc-input',                      #16
-                              'index': index},
-                          type='number',
-                          value = inc),
-                html.Label('Argument of the Periapsis (°)'),            #17
-                dcc.Input(id={'type': 'argp-input',                     #18
-                              'index': index},
-                          type='number',
-                          value = argp),
-                html.Label('Longitude of the Ascending Node (°)'),      #19
-                dcc.Input(id={'type': 'lan-input',                      #20
-                              'index': index},
-                          type='number',
-                          value = lan),
-                html.Label('Mean anomaly at epoch (radians)'),          #21
-                dcc.Input(id={'type': 'mo-input',                       #22
-                              'index': index},
-                          type='number',
-                          value = mo),
-                html.Label('Epoch (s)'),                                #23
-                dcc.Input(id={'type': 'epc-input',                      #24
-                              'index': index},
-                          type='number',
-                          value = epoch),
-        
-                html.H3('Maneuver Nodes'),                              #25
-                html.Label('Number of maneuver nodes'),                 #26
-                dcc.Input(id={'type': 'numNodes-input',                 #27
-                              'index': index},
-                          type = 'number',
-                          value = numNodes,
-                          min = 0,
-                          step = 1),
-                html.Div(id={'type': 'nodes-div',                      #28
-                             'index': index},
-                         children=[]
-                    ),
+                             children=[]
+                        ),
+                    ]),
+                  ]),
                 ])
     
     for ii in range(numNodes):
-        add_maneuver_node(newTab.children[28].children, ii+1, maneuverNodes[ii])
+        add_maneuver_node(newTab.children[3].children[1].children[3].children, ii+1, maneuverNodes[ii])
     
     return newTab
 
@@ -203,7 +215,7 @@ app.layout = html.Div(id='kspti-body', children = [
             html.Img(
                 src=app.get_asset_url("KSP forum logo.png"),
                 style={
-                    'float' : 'right',
+                    'float' : 'left',
                     'position' : 'relative',
                     'padding-top' : 50,
                     'padding-right' : 0
@@ -215,7 +227,7 @@ app.layout = html.Div(id='kspti-body', children = [
             html.Img(
                 src=app.get_asset_url("Github logo.png"),
                 style={
-                    'float' : 'right',
+                    'float' : 'left',
                     'position' : 'relative',
                     'padding-top' : 25,
                     'padding-right' : 100
@@ -233,111 +245,124 @@ app.layout = html.Div(id='kspti-body', children = [
                 })
           ]),
       ]),
+  
   html.Div(className='row', children=[
     html.Div(className='four columns', children=[
-        html.H3('Settings'),
-        html.Label('Date Format'),
-        dcc.RadioItems(
-            id = 'dateFormat-radio',
-            options=[
-                {'label': 'Kerbin Time (6h days, 426d years)',
-                 'value': 'Kerbin'},
-                {'label': 'Earth Time (24h days, 365d years)',
-                 'value': 'Earth'},
-                ],
-            value='Kerbin'
-            ),
-        html.Label('System'),
-        dcc.RadioItems(
-            id = 'system-radio',
-            options=[
-                {'label': 'Kerbol (Stock)', 'value': 'stock'},
-                {'label': 'Kerbol (Outer Planets Mod)', 'value': 'opm'},
-                {'label': 'Sol (Real Solar System)', 'value': 'rss'},
-                {'label': 'Uploaded System', 'value': 'upload'}],
-            value='stock',
-            ),
-        html.Label('System Resize Factor'),
-        dcc.Input(id = 'systemResize-input',  
-                  type='number',
-                  value = 1,
-                  min = 0),
-        html.Label('System Rescale Factor'),
-        dcc.Input(id = 'systemRescale-input',
-                  type='number',
-                  value = 1,
-                  min = 0),
-        html.Label('Day Length Multiplier'),
-        dcc.Input(id='systemDayScale-input',
-                  type='number',
-                  value = 1,
-                  min = 0),
-        html.Label('Start time (s)'),
-        dcc.Input(id = 'startTime-input',  
-                  type='number',
-                  min = 0),
-        html.Label('End time (s)'),
-        dcc.Input(id = 'endTime-input',  
-                  type='number'),
-        html.Label('Number of revolutions to search for intercept'),
-        dcc.Input(id = 'numRevs-input',  
-                  type='number',
-                  value = 5,
-                  min = 0,
-                  step = 1),
-        html.Label('Number of vessels'),
-        dcc.Input(id = 'numVessels-input',  
-                  type='number',
-                  value = 1,
-                  min = 0,
-                  step = 1),
-        html.H3('Load from .sfs File'),
-        dcc.Upload(
-            id='persistenceFile-upload',
-            children=html.Div([
-                'Drag and Drop or ',
-                html.A('Select Files')
+        dcc.Tabs(id='kspti-control-tabs', className='control-tabs', value='vessel', children=[
+            dcc.Tab(className='control-tab', label='Vessel Settings', value='vessel', children=[
+                html.H3('Vessel Settings'),
+                html.Label('Number of vessels'),
+                dcc.Input(id = 'numVessels-input',  
+                          type='number',
+                          value = 1,
+                          min = 0,
+                          step = 1),
+                html.Label('Number of revolutions to search for intercept'),
+                dcc.Input(id = 'numRevs-input',  
+                          type='number',
+                          value = 5,
+                          min = 0,
+                          step = 1),
+                html.H3('Load from .sfs File'),
+                dcc.Upload(
+                    id='persistenceFile-upload',
+                    children=html.Div([
+                        'Drag and Drop or ',
+                        html.A('Select Files')
+                    ]),
+                    style={
+                        'width': '100%',
+                        'height': '60px',
+                        'lineHeight': '60px',
+                        'borderWidth': '1px',
+                        'borderStyle': 'dashed',
+                        'borderRadius': '5px',
+                        'textAlign': 'center',
+                        'margin': '10px'
+                        },
+                    multiple=False
+                    ),
+                html.Label('Select vessel/object to add:'),
+                dcc.Dropdown(
+                    id='persistenceVessel-dropdown',
+                    ),
+                html.Button(children = 'Add Vessel',
+                            className = 'button-primary',
+                            id = 'addPersistenceVessel-button',
+                            n_clicks = 0
+                    ),
+                ]),
+            dcc.Tab(label='System Settings', className='control-tab', value='system', children=[
+                html.H3('System Settings'),
+                html.Label('System'),
+                dcc.RadioItems(
+                    id = 'system-radio',
+                    options=[
+                        {'label': 'Kerbol (Stock)', 'value': 'stock'},
+                        {'label': 'Kerbol (Outer Planets Mod)', 'value': 'opm'},
+                        {'label': 'Sol (Real Solar System)', 'value': 'rss'},
+                        {'label': 'Uploaded System', 'value': 'upload'}],
+                    value='stock',
+                    ),
+                html.H3('System Resizing/Rescaling'),
+                html.Label('System Resize Factor'),
+                dcc.Input(id = 'systemResize-input',  
+                          type='number',
+                          value = 1,
+                          min = 0),
+                html.Label('System Rescale Factor'),
+                dcc.Input(id = 'systemRescale-input',
+                          type='number',
+                          value = 1,
+                          min = 0),
+                html.Label('Day Length Multiplier'),
+                dcc.Input(id='systemDayScale-input',
+                          type='number',
+                          value = 1,
+                          min = 0),
+                html.H3('Load System from .ini File'),
+                dcc.Upload(
+                    id='systemFile-upload',
+                    children=html.Div([
+                        'Drag and Drop or ',
+                        html.A('Select Files')
+                    ]),
+                    style={
+                        'width': '100%',
+                        'height': '60px',
+                        'lineHeight': '60px',
+                        'borderWidth': '1px',
+                        'borderStyle': 'dashed',
+                        'borderRadius': '5px',
+                        'textAlign': 'center',
+                        'margin': '10px'
+                        },
+                    multiple=False
+                    ),
+                ]),
+            dcc.Tab(label='Time Settings', className='control-tab', value='time', children=[
+                html.H3('Time Settings'),
+                html.Label('Date Format'),
+                dcc.RadioItems(
+                    id = 'dateFormat-radio',
+                    options=[
+                        {'label': 'Kerbin Time (6h days, 426d years)',
+                         'value': 'Kerbin'},
+                        {'label': 'Earth Time (24h days, 365d years)',
+                         'value': 'Earth'},
+                        ],
+                    value='Kerbin'
+                    ),
+                html.H3('Plot Time Limits'),
+                html.Label('Start time (s)'),
+                dcc.Input(id = 'startTime-input',  
+                          type='number',
+                          min = 0),
+                html.Label('End time (s)'),
+                dcc.Input(id = 'endTime-input',  
+                          type='number'),
+                ])
             ]),
-            style={
-                'width': '100%',
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '10px'
-                },
-            multiple=False
-            ),
-        html.Label('Select vessel/object to add:'),
-        dcc.Dropdown(
-            id='persistenceVessel-dropdown',
-            ),
-        html.Button(children = 'Add Vessel',
-                    className = 'button-primary',
-                    id = 'addPersistenceVessel-button',
-                    n_clicks = 0
-            ),
-        html.H3('Load System from .ini File'),
-        dcc.Upload(
-            id='systemFile-upload',
-            children=html.Div([
-                'Drag and Drop or ',
-                html.A('Select Files')
-            ]),
-            style={
-                'width': '100%',
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '10px'
-                },
-            multiple=False
-            ),
         ]),
     
     html.Div(className='four columns', children=[
@@ -348,7 +373,7 @@ app.layout = html.Div(id='kspti-body', children = [
                         n_clicks = 0
                 ),
             ),
-        dcc.Tabs(id='vessel-tabs', style={'padding-top' : 50}, className='control-tabs', value='Vessel 1', children=[
+        dcc.Tabs(id='vessel-tabs', style={'padding-top' : 48}, className='control-tabs', value='Vessel 1', children=[
             make_new_vessel_tab('Vessel 1', 1, kerbol_system,
                                 'Kerbin', 700000,0,0,0,0,0,4510000,
                                 [[1054.39,0,0,4519600.550],
@@ -532,7 +557,7 @@ def update_num_nodes(numNodes, prevNodesChildren):
     elif numNodes > prevNumNodes:
         newChildren = prevNodesChildren
         for ii in range(numNodes-prevNumNodes):
-            add_maneuver_node(newChildren, ii+prevNumNodes)
+            add_maneuver_node(newChildren, ii+prevNumNodes+1)
     else:
         return dash.no_update
     
@@ -653,16 +678,16 @@ def update_orbits(nClicks, system, vesselTabs, numRevs):
     for tab in vesselTabs:
         
         # get parameters from tab children
-        startBodyName = tab['props']['children'][10]['props']['value']
-        startA = tab['props']['children'][12]['props']['value']
-        startEcc = tab['props']['children'][14]['props']['value']
-        startInc = tab['props']['children'][16]['props']['value']
-        startArgP = tab['props']['children'][18]['props']['value']
-        startLAN = tab['props']['children'][20]['props']['value']
-        startMo = tab['props']['children'][22]['props']['value']
-        startEpoch = tab['props']['children'][24]['props']['value']
+        startBodyName = tab['props']['children'][3]['props']['children'][0]['props']['children'][2]['props']['value']
+        startA = tab['props']['children'][3]['props']['children'][0]['props']['children'][4]['props']['value']
+        startEcc = tab['props']['children'][3]['props']['children'][0]['props']['children'][6]['props']['value']
+        startInc = tab['props']['children'][3]['props']['children'][0]['props']['children'][8]['props']['value']
+        startArgP = tab['props']['children'][3]['props']['children'][0]['props']['children'][10]['props']['value']
+        startLAN = tab['props']['children'][3]['props']['children'][0]['props']['children'][12]['props']['value']
+        startMo = tab['props']['children'][3]['props']['children'][0]['props']['children'][14]['props']['value']
+        startEpoch = tab['props']['children'][3]['props']['children'][0]['props']['children'][16]['props']['value']
         
-        nodesChildren = tab['props']['children'][28]['props']['children']
+        nodesChildren = tab['props']['children'][3]['props']['children'][1]['props']['children'][3]['props']['children']
         
         # prepare system information, start body
         if not isinstance(system, list):
@@ -968,13 +993,13 @@ def update_graphs(sliderTime, displays, dateFormat,
         
         # prepare color
         color = (                                                           \
-            vesselTabs[nn]['props']['children'][5]['props']['value'],       \
-            vesselTabs[nn]['props']['children'][6]['props']['value'],       \
-            vesselTabs[nn]['props']['children'][7]['props']['value']        \
+            vesselTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][1]['props']['value'],
+            vesselTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][2]['props']['value'],
+            vesselTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][3]['props']['value']
                 )
         
         # prepare maneuver nodes
-        nodesChildren = vesselTabs[nn]['props']['children'][28]['props']['children']
+        nodesChildren = vesselTabs[nn]['props']['children'][3]['props']['children'][1]['props']['children'][3]['props']['children']
         nodeBurns = []
         nodeTimes = []
         for kk in range(int(len(nodesChildren)/5)):
