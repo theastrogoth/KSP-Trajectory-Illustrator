@@ -80,9 +80,15 @@ def dict_to_body(body_dict, system_list):
         prim = [bd for bd in system_list if bd.name == primName][0]
         orb = Orbit(a, ecc, inc, argp, lan, mo, epoch, prim)
     
+    try:
+        colorStr = body_dict['color']
+        color = eval(colorStr)
+    except:
+        color = (255, 255, 255)
+    
     ref = int(body_dict['id'])
     
-    return Body(name, eqr, mu, None, orb, ref)
+    return Body(name, eqr, mu, None, orb, ref, None, color)
 
 def dicts_to_system(system_dicts):
     system = []
@@ -110,8 +116,11 @@ def sort_system(unsortedSystem):
     for bd in unsortedSystem:
         bd.sort_satellites()
     
-    sun = [bd for bd in unsortedSystem if bd.orb.prim.name == bd.name][0]
-    
+    try:
+        sun = [bd for bd in unsortedSystem if bd.name == 'Sun'][0]
+    except:
+        sun = [bd for bd in unsortedSystem if bd.orb.prim.name == bd.name][0]
+        
     add_body_and_satellites(sortedSystem, sun)
     return sortedSystem
 
@@ -119,3 +128,67 @@ def ini_to_system(ini, path=True):
     system_dicts = dicts_from_ini_file(ini, path)
     system = dicts_to_system(system_dicts)
     return sort_system(system)
+
+def system_to_ini(system, path=None):
+    if path is None:
+        path = "bodies.ini"
+    f = open(path, "w")
+    for bd in system:
+        f.write('['+bd.name+']\n')
+        if bd.orb.prim.name == bd.name:
+            f.write('epoch = 0\n')
+            f.write('sma = 0\n')
+            f.write('ecc = 0\n')
+            f.write('inc = 0\n')
+            f.write('raan = 0\n')
+            f.write('arg = 0\n')
+            f.write('mean = 0\n')
+            f.write('gm = ' + str(bd.mu / 1E9) + '\n')
+            f.write('radius = ' + str(bd.eqr / 1000) + '\n')
+            f.write('parent = \n')
+            f.write('parentID = -1\n')
+            f.write('name = ' + bd.name + '\n')
+            f.write('id = ' + str(bd.ref) + '\n')
+        else:
+            f.write('epoch = ' + str(bd.orb.epoch)+'\n')
+            f.write('sma = ' + str(bd.orb.a / 1000)+'\n')
+            f.write('ecc = ' + str(bd.orb.ecc)+'\n')
+            f.write('inc = ' + str(bd.orb.inc *180/pi)+'\n')
+            f.write('raan = ' + str(bd.orb.lan *180/pi)+'\n')
+            f.write('arg = ' + str(bd.orb.argp *180/pi)+'\n')
+            f.write('mean = ' + str(bd.orb.mo *180/pi)+'\n')
+            f.write('gm = ' + str(bd.mu / 1E9) + '\n')
+            f.write('radius = ' + str(bd.eqr / 1000) + '\n')
+            f.write('parent = ' + bd.orb.prim.name + '\n')
+            f.write('parentID = ' + str(bd.orb.prim.ref) + '\n' )
+            f.write('name = ' + bd.name + '\n')
+            f.write('id = ' + str(bd.ref) + '\n')
+        
+        f.write('color = ' + str(bd.color) + '\n')
+        f.write('\n')
+        
+    f.close()
+    
+    return
+
+import jsonpickle
+from copy import deepcopy
+
+infile = open('kerbol_system.json','r')
+system = jsonpickle.decode(infile.read())
+infile.close
+
+orb = deepcopy(system[4].orb)
+orb.prim = system[4].orb.prim
+newBody = Body('Test', 
+               system[4].eqr,
+               system[4].mu,
+               None,
+               orb,
+               111,
+               None,
+               (200,200,200))
+newBody.orb.mo = 0
+
+system.append(newBody)
+system = sort_system(system)
