@@ -530,6 +530,8 @@ def update_num_nodes(numNodes, prevNodesChildren):
         newChildren = prevNodesChildren
         for ii in range(numNodes-prevNumNodes):
             add_maneuver_node(newChildren, ii+prevNumNodes)
+    else:
+        return dash.no_update
     
     return newChildren
 
@@ -578,6 +580,8 @@ def update_vessel_tabs(numVessels,
                 )
             numVessels = numVessels+1
             tabVal = vessel.name
+        else:
+            tabVal = prevTabVal
     
     elif 'deleteVessel-button' in ctx.triggered[0]['prop_id']:
         vesselTabs = prevVesselTabs
