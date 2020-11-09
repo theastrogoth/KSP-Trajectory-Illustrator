@@ -447,7 +447,8 @@ def set_date_format(selected_format, resizeFactor, rescaleFactor, dayFactor):
     return dict(day=day, year=year)
 
 @app.callback(
-    Output('allSystems-div','children'),
+    [Output('allSystems-div','children'),
+     Output('system-radio','value')],
     [Input('systemFile-upload','contents')],
     [State('allSystems-div','children'),
      State('system-radio','options')],
@@ -463,7 +464,7 @@ def add_system_from_ini(iniFile, allSystems, radioOptions):
     
     allSystems[3] = jsonpickle.encode(newSystem)
     
-    return allSystems
+    return allSystems, 'upload'
 
 @app.callback(
      Output('system-div', 'children'),
