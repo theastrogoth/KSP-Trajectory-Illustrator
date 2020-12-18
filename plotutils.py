@@ -119,6 +119,21 @@ def burn_components_to_absolute(prograde, normal, radial, position, velocity,
     burnDV = prograde*progradeDir + normal*normalDir + radial*radialDir
     return burnDV
 
+def cartesian_to_spherical(xyz):
+    spherical = xyz*0
+    xy = xyz[:,0]**2 + xyz[:,1]**2
+    spherical[:,0] = np.sqrt(xy + xyz[:,2]**2)
+    spherical[:,1] = np.arctan2(xyz[:,1], xyz[:,0])
+    spherical[:,2] = np.arctan2(xyz[:,2], np.sqrt(xy)) # for elevation angle defined from XY-plane up
+    return spherical
+
+def spherical_to_cartesian(spherical):
+    xyz = spherical*0
+    xyz[:,0] = spherical[:,0] * np.cos(spherical[:,1]) * np.sin(spherical[:,2])
+    xyz[:,1] = spherical[:,0] * np.sin(spherical[:,1]) * np.sin(spherical[:,2])
+    xyz[:,2] = spherical[:,0] * np.cos(spherical[:,2])
+    return xyz
+
 #%% porkchop plot functions
 
 def add_lines(figure, x, y, minX, maxX, minY, maxY, color = 'black'):
@@ -834,3 +849,93 @@ def blank_plot():
         plot_bgcolor="rgb(30, 30, 30)",
         )
     return fig
+
+#%% surface plot
+def project_to_surface(orb, times):
+    """Takes list of positions and times and projects to body's surface."""
+    
+    bd = orb.prim
+    positions = orb.get_positions(times=times)[0]
+    
+    bodyThetas = 2*np.pi/bd.rotPeriod * np.array(times) + bd.rotIni
+    sphericalPositions = cartesian_to_spherical(positions)
+    
+    surfaceCoords = sphericalPositions[:,1:]
+    for ii in range(len(times)):
+        longitude = surfaceCoords[ii,0] - Orbit.map_angle(bodyThetas[ii])
+        count = 0
+        while abs(longitude) > np.pi:
+            longitude =  longitude - np.sign(longitude) * 2*np.pi
+            count = count+1
+            if count > 10:
+                print('Why?')
+                break
+        surfaceCoords[ii,0] = longitude
+    
+    return surfaceCoords
+
+def add_orbit_surface_projection(fig, orb, startTime, endTime=None, numPts=1001,
+                                 name = None,
+                                 color=(255, 255, 255),
+                                 symbol = 'circle', markerSize = 4,
+                                 borderColor = None):
+    
+    if color is None:
+        color = (255, 255, 255)
+    
+    if borderColor is None:
+        borderDict = dict()
+    else:
+        borderDict = dict(color=borderColor,
+                          width=2)
+    if endTime is None:
+        times = [startTime]
+        colorscale = [[0.0, "rgb"+str(color)],
+                      [1.0, "rgb"+str(color)]]
+    else:
+        times = np.linspace(startTime, endTime, numPts)
+        colorscale = [[0.0, "rgb"+str(color)],
+                      [1.0, "rgb"+str(fade_color(color, 3))]]
+    longLats = project_to_surface(orb, times)
+    
+    fig.add_trace(go.Scatter(x=longLats[:,0]*180/np.pi, 
+                             y=longLats[:,1]*180/np.pi,
+                             name = name,
+                             mode='markers',
+                             marker = dict(
+                                 symbol = symbol,
+                                 size = markerSize,
+                                 line = borderDict,
+                                 color = times,
+                                 colorscale = colorscale),
+                             hovertemplate =                                \
+                                 "Longitude = %{x:.6f} °" + "<br>" +    \
+                                 "Latitude = %{y:.6f} m/s" + "<br>" +  \
+                                 "UT = %{marker.color:.2f} s",
+                             ))
+
+def set_surface_projection_layout(fig, uirev):
+    
+    if uirev is None:
+        uirev = 'test'
+    
+    fig.update_layout(
+            xaxis = dict(range=[-180, 180]),
+            yaxis = dict(range=[-90, 90]),
+            xaxis_title='Longitude (°)',
+            yaxis_title='Latitude (°)',
+            font=dict(
+                    color="rgb(200, 200, 200)"
+    )
+        )
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=10, b=30),
+        paper_bgcolor="rgb(30, 30, 30)",
+        plot_bgcolor="rgb(30, 30, 30)",
+        uirevision = uirev
+        )
+    fig.update_xaxes(color = "rgb(200, 200, 200)",
+                     gridcolor="rgb(200, 200, 200)")
+    fig.update_yaxes(color = "rgb(200, 200, 200)",
+                     gridcolor="rgb(200, 200, 200)")
+

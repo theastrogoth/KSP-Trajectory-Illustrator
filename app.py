@@ -15,9 +15,10 @@ from collections import OrderedDict
 
 import jsonpickle
 import math
+import numpy as np
 from orbit import Orbit
 from body import Body
-from vessel import Vessel
+from craft import Craft
 
 DOWNLOAD_DIRECTORY = "/tmp/app_generated_files"
 
@@ -35,13 +36,13 @@ app.title='KSP Trajectory Illustrator'
 #%% read solar system data
 infile = open('kerbol_system.json','r')
 kerbol_system = jsonpickle.decode(infile.read())
-infile.close
+infile.close()
 infile = open('outer_planets_system.json','r')
 outer_planets_system = jsonpickle.decode(infile.read())
-infile.close
+infile.close()
 infile = open('sol_system.json','r')
 sol_system = jsonpickle.decode(infile.read())
-infile.close
+infile.close()
 
 #%%
 def name_options(objectList):
@@ -67,7 +68,7 @@ def add_maneuver_node(nodesList, num, burn=None):
                                placeholder='UT (s)',
                                value=burn[3]))
 
-def make_new_vessel_tab(label, index, system,
+def make_new_craft_tab(label, index, system,
                         primName=None, a=0, ecc=0, inc=0, argp=0, lan=0,
                         mo=0, epoch=0,
                         maneuverNodes=None):
@@ -77,16 +78,16 @@ def make_new_vessel_tab(label, index, system,
     else:
         numNodes = 0
     
-    newTab = dcc.Tab(id = {'type': 'vessel-tab',
+    newTab = dcc.Tab(id = {'type': 'craft-tab',
                            'index': index},
                     label=label,
                     value=label, 
                     className='control-tab',
                     children=[
                 html.Div(style={'padding-top' : 25}, children=[         #0
-                    html.Button(children = 'Delete Vessel',
+                    html.Button(children = 'Delete Craft',
                             className = 'button-primary',
-                            id = {'type': 'deleteVessel-button',
+                            id = {'type': 'deleteCraft-button',
                                   'index': index},
                             n_clicks = 0,
                             ),
@@ -248,11 +249,11 @@ app.layout = html.Div(id='kspti-body', children = [
   
   html.Div(className='row', children=[
     html.Div(className='four columns', children=[
-        dcc.Tabs(id='kspti-control-tabs', className='control-tabs', value='vessel', children=[
-            dcc.Tab(className='control-tab', label='Vessel Settings', value='vessel', children=[
-                html.H3('Vessel Settings'),
-                html.Label('Number of vessels'),
-                dcc.Input(id = 'numVessels-input',  
+        dcc.Tabs(id='kspti-control-tabs', className='control-tabs', value='craft', children=[
+            dcc.Tab(className='control-tab', label='Craft Settings', value='craft', children=[
+                html.H3('Craft Settings'),
+                html.Label('Number of crafts'),
+                dcc.Input(id = 'numCrafts-input',  
                           type='number',
                           value = 1,
                           min = 0,
@@ -282,13 +283,13 @@ app.layout = html.Div(id='kspti-body', children = [
                         },
                     multiple=False
                     ),
-                html.Label('Select vessel/object to add:'),
+                html.Label('Select craft/object to add:'),
                 dcc.Dropdown(
-                    id='persistenceVessel-dropdown',
+                    id='persistenceCraft-dropdown',
                     ),
-                html.Button(children = 'Add Vessel',
+                html.Button(children = 'Add Craft',
                             className = 'button-primary',
-                            id = 'addPersistenceVessel-button',
+                            id = 'addPersistenceCraft-button',
                             n_clicks = 0
                     ),
                 ]),
@@ -361,20 +362,31 @@ app.layout = html.Div(id='kspti-body', children = [
                 html.Label('End time (s)'),
                 dcc.Input(id = 'endTime-input',  
                           type='number'),
+                html.H3('Surface Projection Options'),
+                html.Label('Max number of revolutions plotted before selected time'),
+                dcc.Input(id='numSurfaceRevsBefore-input',
+                          type='number',
+                          min = 0,
+                          value = 3),
+                html.Label('Max number of revolutions plotted after selected time'),
+                dcc.Input(id='numSurfaceRevsAfter-input',
+                          type='number',
+                          min = 0,
+                          value = 3),
                 ])
             ]),
         ]),
     
     html.Div(className='four columns', children=[
         html.Div(
-            html.Button(children = 'Add Vessel',
+            html.Button(children = 'Add New Craft',
                         className = 'button-primary',
-                        id = 'addVessel-button',
+                        id = 'addCraft-button',
                         n_clicks = 0
                 ),
             ),
-        dcc.Tabs(id='vessel-tabs', style={'padding-top' : 48}, className='control-tabs', value='Vessel 1', children=[
-            make_new_vessel_tab('Vessel 1', 1, kerbol_system,
+        dcc.Tabs(id='craft-tabs', style={'padding-top' : 48}, className='control-tabs', value='Craft 1', children=[
+            make_new_craft_tab('Craft 1', 1, kerbol_system,
                                 'Kerbin', 700000,0,0,0,0,0,4510000,
                                 [[1054.39,0,0,4519600.550],
                                  [0,7.03,0,7019695.568],
@@ -402,6 +414,7 @@ app.layout = html.Div(id='kspti-body', children = [
                 {'label': 'Apses', 'value': 'apses'},
                 {'label': 'Nodes', 'value': 'nodes'},
                 {'label': 'Reference Direction', 'value': 'ref'},
+                {'label': 'Surface Projection Plot', 'value': 'surfProj'}
                 ],
             labelStyle={'display': 'inline-block'},
             ),
@@ -437,9 +450,9 @@ app.layout = html.Div(id='kspti-body', children = [
              children=[]),
     html.Div(id='plotSystems-div', style={'display': 'none'},
              children=[]),
-    html.Div(id='numVessels-div', style={'display': 'none'},
+    html.Div(id='numCrafts-div', style={'display': 'none'},
              children=[1]),
-    html.Div(id='persistenceVessels-div', style={'display': 'none'},
+    html.Div(id='persistenceCrafts-div', style={'display': 'none'},
              children=[]),
     ])
   ])
@@ -517,15 +530,15 @@ def set_system(system_name, resizeFactor, rescaleFactor, all_systems):
     return jsonpickle.encode(system)
 
 @app.callback(
-     Output('numVessels-div','children'),
-    [Input('numVessels-input', 'value')],
-    [State('numVessels-div','children')]
+     Output('numCrafts-div','children'),
+    [Input('numCrafts-input', 'value')],
+    [State('numCrafts-div','children')]
     )
-def update_num_vessels(numVessels, prevNumVessels):
-    if numVessels == prevNumVessels:
+def update_num_crafts(numCrafts, prevNumCrafts):
+    if numCrafts == prevNumCrafts:
         return dash.no_update
     else:
-        return numVessels
+        return numCrafts
 
 @app.callback(
      Output({'type': 'refBody-dropdown', 'index': MATCH}, 'options'),
@@ -536,10 +549,10 @@ def update_ref_body_dropdown(system):
     return name_options(system)
 
 @app.callback(
-     Output({'type': 'vessel-tab', 'index': MATCH}, 'label'),
+     Output({'type': 'craft-tab', 'index': MATCH}, 'label'),
     [Input({'type': 'name-input', 'index': MATCH}, 'value')]
     )
-def update_vessel_name(name):
+def update_craft_name(name):
     return name
 
 @app.callback(
@@ -564,118 +577,119 @@ def update_num_nodes(numNodes, prevNodesChildren):
     return newChildren
 
 @app.callback(
-    [Output('vessel-tabs','children'),
-     Output('vessel-tabs','value'),
-     Output('numVessels-input','value')],
-    [Input('numVessels-div','children'),
-     Input('addPersistenceVessel-button','n_clicks'),
-     Input('addVessel-button','n_clicks'),
-     Input({'type': 'deleteVessel-button', 'index': ALL}, 'n_clicks')],
-    [State('vessel-tabs','children'),
-     State('vessel-tabs','value'),
+    [Output('craft-tabs','children'),
+     Output('craft-tabs','value'),
+     Output('numCrafts-input','value')],
+    [Input('numCrafts-div','children'),
+     Input('addPersistenceCraft-button','n_clicks'),
+     Input('addCraft-button','n_clicks'),
+     Input({'type': 'deleteCraft-button', 'index': ALL}, 'n_clicks')],
+    [State('craft-tabs','children'),
+     State('craft-tabs','value'),
      State('system-div','children'),
-     State('persistenceVessel-dropdown','value'),
-     State('persistenceVessels-div','children')],
+     State('persistenceCraft-dropdown','value'),
+     State('persistenceCrafts-div','children')],
     prevent_initial_call=True
     )
-def update_vessel_tabs(numVessels,
-                       addFileVesselClicks, addVesselClicks, delVesselClicks,
-                       prevVesselTabs, prevTabVal, system,
-                       addVesselName, persistenceVessels):
+def update_craft_tabs(numCrafts,
+                       addFileCraftClicks, addCraftClicks, delCraftClicks,
+                       prevCraftTabs, prevTabVal, system,
+                       addCraftName, persistenceCrafts):
     
     system = jsonpickle.decode(system)
-    prevNumVessels = len(prevVesselTabs)
+    prevNumCrafts = len(prevCraftTabs)
     
     tabIdxs = []
-    for ii, tab in enumerate(prevVesselTabs):
+    for ii, tab in enumerate(prevCraftTabs):
             tabIdxs.append(tab['props']['children'][0]['props']['children'][0]['props']['id']['index'])
     
     ctx = dash.callback_context
-    if ctx.triggered[0]['prop_id'].split('.')[0] == 'addPersistenceVessel-button':
-        persistenceVessels = jsonpickle.decode(persistenceVessels)
-        vessel = [vs for vs in persistenceVessels if vs.name == addVesselName][0]
+    if ctx.triggered[0]['prop_id'].split('.')[0] == 'addPersistenceCraft-button':
+        persistenceCrafts = jsonpickle.decode(persistenceCrafts)
+        craft = [vs for vs in persistenceCrafts if vs.name == addCraftName][0]
         
-        vesselTabs = prevVesselTabs
-        tabValues = [tab['props']['value'] for tab in vesselTabs]
-        if not vessel.name in tabValues:
-            vesselTabs.append(
-                make_new_vessel_tab(vessel.name, prevNumVessels+1, system,
-                                    vessel.orb.prim.name, vessel.orb.a, 
-                                    vessel.orb.ecc, vessel.orb.inc, 
-                                    vessel.orb.argp, vessel.orb.lan,
-                                    vessel.orb.mo, vessel.orb.epoch,
-                                    vessel.maneuverNodes)
+        craftTabs = prevCraftTabs
+        tabValues = [tab['props']['value'] for tab in craftTabs]
+        if not craft.name in tabValues:
+            craftTabs.append(
+                make_new_craft_tab(craft.name, prevNumCrafts+1, system,
+                                    craft.orb.prim.name, craft.orb.a, 
+                                    craft.orb.ecc, craft.orb.inc, 
+                                    craft.orb.argp, craft.orb.lan,
+                                    craft.orb.mo, craft.orb.epoch,
+                                    craft.maneuverNodes)
                 )
-            numVessels = numVessels+1
-            tabVal = vessel.name
+            numCrafts = numCrafts+1
+            tabVal = craft.name
         else:
             tabVal = prevTabVal
     
-    elif 'deleteVessel-button' in ctx.triggered[0]['prop_id']:
-        vesselTabs = prevVesselTabs
+    elif 'deleteCraft-button' in ctx.triggered[0]['prop_id']:
+        craftTabs = prevCraftTabs
         idx = int(str(ctx.triggered[0]['prop_id']).split('.')[0][9])
         for ii, tIdx in enumerate(tabIdxs):
             if tIdx == idx:
                 tabIdx = ii
                 break
-        if prevNumVessels == 1:
+        if prevNumCrafts == 1:
             tabVal = None
         elif tabIdx == 0:
-            tabVal = vesselTabs[1]['props']['value']
+            tabVal = craftTabs[1]['props']['value']
         else:
-            tabVal = vesselTabs[tabIdx-1]['props']['value']
-        del(vesselTabs[tabIdx])
-        numVessels = numVessels-1
+            tabVal = craftTabs[tabIdx-1]['props']['value']
+        del(craftTabs[tabIdx])
+        numCrafts = numCrafts-1
     
-    elif numVessels < prevNumVessels:
-        vesselTabs = prevVesselTabs[0:numVessels]
+    elif numCrafts < prevNumCrafts:
+        craftTabs = prevCraftTabs[0:numCrafts]
         try:
-            tabVal = vesselTabs[-1]['props']['value']
+            tabVal = craftTabs[-1]['props']['value']
         except IndexError:
             tabVal = None
-    elif (numVessels > prevNumVessels) or ('addVessel-button' in ctx.triggered[0]['prop_id']):
-        if numVessels==prevNumVessels:
-            numVessels = numVessels+1
-        vesselTabs = prevVesselTabs
+    elif (numCrafts > prevNumCrafts) or ('addCraft-button' in ctx.triggered[0]['prop_id']):
+        if numCrafts==prevNumCrafts:
+            numCrafts = numCrafts+1
+        craftTabs = prevCraftTabs
         newIdx = 1
-        for jj in range(numVessels-prevNumVessels):
+        for jj in range(numCrafts-prevNumCrafts):
             while newIdx in tabIdxs:
                 newIdx = newIdx+1
-            vesselTabs.append(
-                make_new_vessel_tab('Vessel '+str(newIdx),                  \
+            craftTabs.append(
+                make_new_craft_tab('Craft '+str(newIdx),                  \
                                     newIdx, system)
                   )
-            tabVal = 'Vessel '+str(newIdx)
+            tabVal = 'Craft '+str(newIdx)
             tabIdxs.append(newIdx)
         tabOrder = np.argsort(tabIdxs)
-        newVesselTabs = []
+        newCraftTabs = []
         for ii in tabOrder:
-            newVesselTabs.append(vesselTabs[ii])
-        vesselTabs = newVesselTabs
+            newCraftTabs.append(craftTabs[ii])
+        craftTabs = newCraftTabs
         
     else:
-        vesselTabs = prevVesselTabs
+        craftTabs = prevCraftTabs
         tabVal = prevTabVal
     
-    return vesselTabs, tabVal, numVessels
+    return craftTabs, tabVal, numCrafts
 
 @app.callback(
      Output('orbits-div','children'),
     [Input('plot-button','n_clicks')],
     [State('system-div','children'),
-     State('vessel-tabs','children'),
-     State('numRevs-input','value')]
+     State('craft-tabs','children'),
+     State('numRevs-input','value'),
+     State('startTime-input','value')]
     )
-def update_orbits(nClicks, system, vesselTabs, numRevs):
+def update_orbits(nClicks, system, craftTabs, numRevs, startTime):
     
     # don't update on page load
     if nClicks == 0:
         return dash.no_update
     
-    vesselOrbits = []
-    vesselTimes = []
+    craftOrbits = []
+    craftTimes = []
     
-    for tab in vesselTabs:
+    for tab in craftTabs:
         
         # get parameters from tab children
         startBodyName = tab['props']['children'][3]['props']['children'][0]['props']['children'][2]['props']['value']
@@ -724,7 +738,14 @@ def update_orbits(nClicks, system, vesselTabs, numRevs):
             nodeTimes.append(nodesChildren[5*ii+4]['props']['value'])
         
         orbits = [sOrb]
-        times = [0]
+        if startTime is None:
+            times = [startEpoch]
+        else:
+            if np.amin(nodeTimes) < startTime:
+                times = [np.amin(nodeTimes)]
+            else:
+                times = [startTime]
+            
         if len(nodeTimes)>0:
             if nodeTimes[0] < startEpoch:
                 times = [nodeTimes[0]-1]
@@ -778,10 +799,10 @@ def update_orbits(nClicks, system, vesselTabs, numRevs):
             if (nextOrb is None and nodeIdx >= len(nodeTimes)):
                 stopSearch = True
         
-        vesselOrbits.append(orbits)
-        vesselTimes.append(times)
+        craftOrbits.append(orbits)
+        craftTimes.append(times)
     
-    return jsonpickle.encode([vesselOrbits, vesselTimes])
+    return jsonpickle.encode([craftOrbits, craftTimes])
 
 @app.callback(
     [Output('graph-tabs','children'),
@@ -804,7 +825,7 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
         return dash.no_update, dash.no_update, dash.no_update,              \
                dash.no_update, dash.no_update
     
-    vesselOrbitsTimes = jsonpickle.decode(orbitsTimes)
+    craftOrbitsTimes = jsonpickle.decode(orbitsTimes)
     
     if startTime is None:
         startTime = 0
@@ -818,9 +839,9 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
     orbitStartTimes = []
     orbitEndTimes = []
     
-    for nn in range(len(vesselOrbitsTimes[0])):
-        orbits = vesselOrbitsTimes[0][nn]
-        times = vesselOrbitsTimes[1][nn]
+    for nn in range(len(craftOrbitsTimes[0])):
+        orbits = craftOrbitsTimes[0][nn]
+        times = craftOrbitsTimes[1][nn]
         sTimes = []
         eTimes = []
         
@@ -833,9 +854,7 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
             soi = orb.prim.soi
             
             if sTime < startTime:
-                if ii < len(times)-1:
-                    if not times[ii+1] < startTime:
-                        sTime = startTime
+                sTime = startTime
             
             if not sTime < startTime:
                 if ii == len(orbits)-1:
@@ -876,6 +895,8 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
             if not eTime is None:
                 if not endTime is None:
                     if endTime < eTime:
+                        eTime = endTime
+                    elif ii==len(orbits)-1:
                         eTime = endTime
                 if orb.prim.name in systems:
                     figIdx = systems.index(orb.prim.name)
@@ -918,6 +939,10 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
                                     id={'type': 'system-graph',
                                         'index': jj},
                                     figure=blankFig),
+                                dcc.Graph(
+                                    id={'type': 'surface-graph',
+                                        'index': jj},
+                                    figure=blankFig),
                                 html.Label('Universal Time (s)'),
                                 dcc.Input(
                                     id={'type': 'plotTime-input',
@@ -956,25 +981,33 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
 
 @app.callback(
     [Output({'type': 'system-graph', 'index': MATCH}, 'figure'),
+     Output({'type': 'surface-graph', 'index': MATCH}, 'style'),
+     Output({'type': 'surface-graph', 'index': MATCH}, 'figure'),
      Output({'type': 'download-button', 'index': MATCH}, 'href')],
     [Input({'type': 'plotTime-slider', 'index': MATCH}, 'value'),
      Input('display-checklist','value'),
-     Input('dateFormat-div','children')],
-    [State('orbits-div','children'),
+     Input('dateFormat-div','children'),
+     Input('numSurfaceRevsBefore-input','value'),
+     Input('numSurfaceRevsAfter-input','value')],
+    [State('startTime-input', 'value'),
+     State('endTime-input', 'value'),
+     State('orbits-div','children'),
      State('orbitStartTimes-div','children'),
      State('orbitEndTimes-div', 'children'),
      State('plotSystems-div', 'children'),
-     State('vessel-tabs', 'children'),
+     State('craft-tabs', 'children'),
      State('system-div', 'children'),
      State({'type': 'system-graph', 'index': MATCH}, 'figure')],
     )
 def update_graphs(sliderTime, displays, dateFormat,
+                  numSurfaceRevsBefore, numSurfaceRevsAfter,
+                  startTime, endTime,
                   orbitsTimes, orbitStartTimes, orbitEndTimes,
-                  plotSystems, vesselTabs,
+                  plotSystems, craftTabs,
                   system, prevFig):
     
     figIdx = dash.callback_context.inputs_list[0]['id']['index']
-    vesselOrbitsTimes = jsonpickle.decode(orbitsTimes)
+    craftOrbitsTimes = jsonpickle.decode(orbitsTimes)
     system = jsonpickle.decode(system)
     
     primaryName = plotSystems[figIdx]
@@ -983,23 +1016,30 @@ def update_graphs(sliderTime, displays, dateFormat,
     primaryBody = [x for x in system if x.name == primaryName][0]
     
     fig = go.Figure()
+    surfFig = go.Figure()
     lim = plot_system(fig, primaryBody, sliderTime,                         \
                       dateFormat, displays);
     set_trajectory_plot_layout(fig, lim, uirev = primaryBody.name)
+    set_surface_projection_layout(surfFig, uirev = primaryBody.name+'Surf')
     
-    for nn in range(len(vesselOrbitsTimes[0])):
+    if 'surfProj' in displays:
+        surfStyle = None
+    else:
+        surfStyle = {'display': 'none'}
+    
+    for nn in range(len(craftOrbitsTimes[0])):
         
-        vesselName = vesselTabs[nn]['props']['label']
+        craftName = craftTabs[nn]['props']['label']
         
         # prepare color
         color = (                                                           \
-            vesselTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][1]['props']['value'],
-            vesselTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][2]['props']['value'],
-            vesselTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][3]['props']['value']
+            craftTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][1]['props']['value'],
+            craftTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][2]['props']['value'],
+            craftTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][3]['props']['value']
                 )
         
         # prepare maneuver nodes
-        nodesChildren = vesselTabs[nn]['props']['children'][3]['props']['children'][1]['props']['children'][3]['props']['children']
+        nodesChildren = craftTabs[nn]['props']['children'][3]['props']['children'][1]['props']['children'][3]['props']['children']
         nodeBurns = []
         nodeTimes = []
         for kk in range(int(len(nodesChildren)/5)):
@@ -1009,7 +1049,7 @@ def update_graphs(sliderTime, displays, dateFormat,
                               ])
             nodeTimes.append(nodesChildren[5*kk+4]['props']['value'])
         
-        orbits = vesselOrbitsTimes[0][nn]
+        orbits = craftOrbitsTimes[0][nn]
         sTimes = orbitStartTimes[nn]
         eTimes = orbitEndTimes[nn]
         
@@ -1025,7 +1065,7 @@ def update_graphs(sliderTime, displays, dateFormat,
                 if 'orbits' in displays:
                     add_orbit(fig, orb, sTime, eTime, 201,
                           dateFormat, 'apses' in displays, 'nodes' in displays,
-                          fullPeriod=False, color=color, name=vesselName,
+                          fullPeriod=False, color=color, name=craftName,
                           style='solid', fade=True)
                 
                 # add burn arrows
@@ -1035,31 +1075,73 @@ def update_graphs(sliderTime, displays, dateFormat,
                     add_burn_arrow(fig, burnDV, eTime, orb, dateFormat,
                                    1/2, 'Burn'+str(burnIdx+1), color, False)
                 
-                # add vessel marker
-                if (sTime<sliderTime) and ((sliderTime<eTime) or ((ii==len(orbits)-1) and (orb.ecc<1))):
-                    vessel = Body('Vessel'+str(nn+1),0,0,0,orb,color=color)
-                    add_body(fig, vessel, sliderTime, False, size = 4, symbol = 'square')
-    
-            elif (ii==len(orbits)-1) and (orb.ecc<1) and                            \
-                 orb.prim.name==primaryBody.name:
+                # add craft marker
+                if (sTime<=sliderTime) and ((sliderTime<eTime) or ((ii==len(orbits)-1) and (orb.ecc<1))):
+                    craft = Body('Craft'+str(nn+1),0,0,0,orb=orb,color=color)
+                    add_body(fig, craft, sliderTime, False, size = 4, symbol = 'square')
                 
-                # draw orbits
-                if 'orbits' in displays:
-                    add_orbit(fig, orb, sliderTime, sliderTime+orb.get_period(), 201,
-                          dateFormat, 'apses' in displays, 'nodes' in displays,
-                          fullPeriod=False, color=color, name=vesselName,
-                          style='solid', fade=True)
+                # surface projection
+                if surfStyle is None:
+                    if numSurfaceRevsBefore is None:
+                        numSurfaceRevsBefore = 1
+                    if numSurfaceRevsAfter is None:
+                        numSurfaceRevsAfter = 1
+                    sTimeEarly = sliderTime - numSurfaceRevsBefore*orb.get_period()
+                    eTimeLate = sliderTime + numSurfaceRevsAfter*orb.get_period()
+                    
+                    if (sliderTime >= sTime and sliderTime < eTime) or      \
+                       (sTimeEarly >= sTime and sTimeEarly < eTime) or      \
+                       (eTimeLate >= sTime and eTimeLate < eTime) or        \
+                       (sTimeEarly <= sTime and eTimeLate >= eTime) or      \
+                       (ii==len(orbits)-1 and sTimeEarly >= eTime):
+                        
+                        # add more time for surface projection after slider time
+                        if ii==len(orbits)-1:
+                            eTime = eTimeLate
+                        elif eTimeLate < eTime:
+                            eTime = eTimeLate
+                        
+                        if not endTime is None:
+                                if eTime > endTime:
+                                    eTime = endTime
+                        
+                        # add more time for surface projection before slider time
+                        if ii==0:
+                            sTime = sTimeEarly
+                        elif sTimeEarly > sTime:
+                            sTime = sTimeEarly
+                        
+                        if not startTime is None:
+                            if sTime < startTime:
+                                sTime = startTime
+                        
+                        numPts = math.ceil((eTime-sTime)/orb.get_period()*101)
+                        
+                        # add surface projection
+                        add_orbit_surface_projection(surfFig, orb, sTime, eTime,
+                                                      name=craftName+' orbit '+str(ii+1),
+                                                      color=color, numPts=numPts)
+        
+        if surfStyle is None:
+            for ii in range(len(orbits)):
+                orb = orbits[ii]
+                sTime = sTimes[ii]
+                eTime = eTimes[ii]
                 
-                # add burn arrows
-                if (eTime in nodeTimes) and ('arrows' in displays):
-                    burnIdx = nodeTimes.index(eTime)
-                    burnDV = nodeBurns[burnIdx]
-                    add_burn_arrow(fig, burnDV, eTime, orb, dateFormat,
-                                   1/2, 'Burn'+str(burnIdx+1), color, False)
+                if not ((sTime is None) or (eTime is None)) and                 \
+                   orb.prim.name==primaryBody.name:
                 
-                # add vessel marker
-                vessel = Body('Vessel'+str(nn+1),0,0,0,orb,color=color)
-                add_body(fig, vessel, sliderTime, False, size = 4, symbol = 'square')
+                    # add more time for surface projection if it's the last orbit
+                    if ii==len(orbits)-1:
+                        eTime = sTime + 10*orb.get_period()
+                    
+                    # add craft location at slider time
+                    if (sTime<=sliderTime) and ((sliderTime<eTime) or ((ii==len(orbits)-1) and (orb.ecc<1))):
+                        add_orbit_surface_projection(surfFig, orb, sliderTime,
+                                                      name=craftName,
+                                                      color=color, symbol='square',
+                                                      markerSize = 12,
+                                                      borderColor='white')
     
     # create downloadable HTML file of plot
     filename = plotSystems[figIdx]+'_system.html'
@@ -1067,7 +1149,7 @@ def update_graphs(sliderTime, displays, dateFormat,
     location = "/download/{}".format(urlquote(filename))
     fig.write_html(path)
     
-    return fig, location
+    return fig, surfStyle, surfFig, location
 
 @app.callback(
      Output({'type': 'plotTime-input', 'index': MATCH}, 'value'),
@@ -1094,14 +1176,14 @@ def update_plot_slider_time(inputTime, prevSliderTime):
     return inputTime
 
 @app.callback(
-    [Output('persistenceVessels-div', 'children'),
-     Output('persistenceVessel-dropdown', 'options'),
-     Output('persistenceVessel-dropdown', 'value')],
+    [Output('persistenceCrafts-div', 'children'),
+     Output('persistenceCraft-dropdown', 'options'),
+     Output('persistenceCraft-dropdown', 'value')],
     [Input('persistenceFile-upload', 'contents')],
     [State('system-div', 'children')],
      prevent_initial_call=True
       )
-def create_vessels_from_persistence_file(persistenceFile, system):
+def create_crafts_from_persistence_file(persistenceFile, system):
     
     if persistenceFile is None:
         return dash.no_update, dash.no_update, dash.no_update
@@ -1110,32 +1192,32 @@ def create_vessels_from_persistence_file(persistenceFile, system):
     persistenceFile = persistenceFile.split(',')[1]
     persistenceFile = b64decode(persistenceFile).decode('utf-8')
     sfsData = parse_savefile(persistenceFile, False)
-    sfsVessels = sfsData['GAME']['FLIGHTSTATE']['VESSEL']
-    vessels = []
-    for sfsVessel in sfsVessels:
+    sfsCrafts = sfsData['GAME']['FLIGHTSTATE']['VESSEL']
+    crafts = []
+    for sfsCraft in sfsCrafts:
         
-        name = sfsVessel['name']
+        name = sfsCraft['name']
         
-        a = float(sfsVessel['ORBIT']['SMA'])
-        ecc = float(sfsVessel['ORBIT']['ECC'])
-        inc = float(sfsVessel['ORBIT']['INC'])
-        argp = float(sfsVessel['ORBIT']['LPE'])
-        lan = float(sfsVessel['ORBIT']['LAN'])
-        mo = float(sfsVessel['ORBIT']['MNA'])
-        epoch = float(sfsVessel['ORBIT']['EPH'])
-        if 'IDENT' in list(sfsVessel['ORBIT'].keys()):
-            primName = sfsVessel['ORBIT']['IDENT']
+        a = float(sfsCraft['ORBIT']['SMA'])
+        ecc = float(sfsCraft['ORBIT']['ECC'])
+        inc = float(sfsCraft['ORBIT']['INC'])
+        argp = float(sfsCraft['ORBIT']['LPE'])
+        lan = float(sfsCraft['ORBIT']['LAN'])
+        mo = float(sfsCraft['ORBIT']['MNA'])
+        epoch = float(sfsCraft['ORBIT']['EPH'])
+        if 'IDENT' in list(sfsCraft['ORBIT'].keys()):
+            primName = sfsCraft['ORBIT']['IDENT']
             primName = primName.replace('Squad/','')
             prim = [bd for bd in system if bd.name == primName][0]
         else:
-            primRef = float(sfsVessel['ORBIT']['REF'])
+            primRef = float(sfsCraft['ORBIT']['REF'])
             prim = [bd for bd in system if bd.ref == primRef][0]
         
         if not a == 0:
             orb = Orbit(a, ecc, inc, argp, lan, mo, epoch, prim)
         
             try:
-                sfsManeuverNodes = sfsVessel['FLIGHTPLAN']['MANEUVER']
+                sfsManeuverNodes = sfsCraft['FLIGHTPLAN']['MANEUVER']
             except KeyError:
                 sfsManeuverNodes = []
             maneuverNodes = []
@@ -1149,11 +1231,11 @@ def create_vessels_from_persistence_file(persistenceFile, system):
                         time = float(node['UT'])
                         maneuverNodes.append([prograde,normal,radial,time])
             
-            vessels.append(Vessel(name, orb, maneuverNodes))
+            crafts.append(Craft(name, orb, maneuverNodes))
     
-    vesselOptions = name_options(vessels)
+    craftOptions = name_options(crafts)
     
-    return jsonpickle.encode(vessels), vesselOptions, vessels[0].name
+    return jsonpickle.encode(crafts), craftOptions, crafts[0].name
 
 #%% run app
 

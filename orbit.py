@@ -345,7 +345,7 @@ class Orbit:
         """Returns the sidereal period of the orbit.
         
         Returns:
-            orbital period (seconds)
+            sidereal orbital period (seconds)
         """
         
         # manually set pi in attempt to improve accuracy with KSP
