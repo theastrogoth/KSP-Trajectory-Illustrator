@@ -932,10 +932,21 @@ def set_surface_projection_layout(fig, uirev):
         margin=dict(l=0, r=0, t=10, b=30),
         paper_bgcolor="rgb(30, 30, 30)",
         plot_bgcolor="rgb(30, 30, 30)",
+        xaxis = dict(
+            tickmode = 'array',
+            tickvals = [-180, -150, -120, -90, -60, -30, 0,                 \
+                        30, 60, 90, 120, 150, 180],
+            ticktext = ['180° W', '150° W', '120° W', '90° W', '60° W', '30° W',
+                        '0° E', '30° E', '60° E', '90° E', '120° E', '150° E', '180° E'],
+            ),
+        yaxis = dict(
+            tickmode = 'array',
+            tickvals = [-90, -60, -30, 0, 30, 60, 90],
+            ticktext = ['90° S', '60° S', '30° S', '0° N', '30° N', '60° N', '90° N'],
+            ),
         uirevision = uirev
         )
     fig.update_xaxes(color = "rgb(200, 200, 200)",
                      gridcolor="rgb(200, 200, 200)")
     fig.update_yaxes(color = "rgb(200, 200, 200)",
                      gridcolor="rgb(200, 200, 200)")
-
