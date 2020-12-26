@@ -910,7 +910,7 @@ def add_orbit_surface_projection(fig, orb, startTime, endTime=None, numPts=1001,
                                  colorscale = colorscale),
                              hovertemplate =                                \
                                  "Longitude = %{x:.6f} °" + "<br>" +    \
-                                 "Latitude = %{y:.6f} m/s" + "<br>" +  \
+                                 "Latitude = %{y:.6f} °" + "<br>" +  \
                                  "UT = %{marker.color:.2f} s",
                              ))
 
@@ -922,8 +922,8 @@ def set_surface_projection_layout(fig, uirev):
     fig.update_layout(
             xaxis = dict(range=[-180, 180]),
             yaxis = dict(range=[-90, 90]),
-            xaxis_title='Longitude (°)',
-            yaxis_title='Latitude (°)',
+            xaxis_title='Longitude',
+            yaxis_title='Latitude',
             font=dict(
                     color="rgb(200, 200, 200)"
     )
