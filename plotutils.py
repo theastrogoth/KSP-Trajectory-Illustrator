@@ -9,6 +9,7 @@ from orbit import Orbit
 from body import Body
 from transfer import Transfer
 from prktable import PorkchopTable
+from imageutils import image_colormap, map_url, get_pixel_values
 
 #%% misc functions
 
@@ -133,6 +134,22 @@ def spherical_to_cartesian(spherical):
     xyz[:,1] = spherical[:,0] * np.sin(spherical[:,1]) * np.sin(spherical[:,2])
     xyz[:,2] = spherical[:,0] * np.cos(spherical[:,2])
     return xyz
+
+def lat_lon_to_spherical(lon, lat, radius):
+    
+    # xs = radius * np.cos(lon) * np.transpose(np.cos(lat))
+    # ys = radius * np.sin(lon) * np.transpose(np.cos(lat))
+    # zs = radius * lon/lon * np.transpose(np.sin(lat))
+    # return np.reshape(xs, xs.size), np.reshape(ys, ys.size), np.reshape(zs, zs.size)
+    
+    lat, lon = np.meshgrid(lat, lon)
+    
+    xs = radius * np.cos(lon) * np.cos(lat)
+    ys = radius * np.sin(lon) * np.cos(lat)
+    zs = radius * np.sin(lat)
+    
+    return xs, ys, zs
+
 
 #%% porkchop plot functions
 
@@ -400,7 +417,7 @@ def add_nodes(figure, orb, size = 4, color = (0,255,0)):
                                   hoverinfo = 'skip',
                                   ))
 
-def add_primary(figure, bd, surf = True):
+def add_primary(figure, bd, surf = True, lat = None, lon = None, pix = None):
     
     fadedColor = fade_color(bd.color)
     
@@ -413,7 +430,26 @@ def add_primary(figure, bd, surf = True):
     y = bd.eqr * np.cos(theta) * np.cos(phi)
     z = bd.eqr * np.sin(theta)
     
-    if surf:
+    if not lat is None:
+        xs, ys, zs = lat_lon_to_spherical(lon, lat, bd.eqr)
+        cmap, mapDict, pix = image_colormap(pix, rounded=True)
+        val = []
+        for pick in pix:
+            val.append(mapDict[pick])
+        # val.reverse()
+        
+        figure.add_trace(go.Surface(
+                                    x=xs,
+                                    y=ys,
+                                    z=-zs,
+                                    colorscale=cmap,
+                                    surfacecolor=np.transpose(np.reshape(val,xs.shape)),
+                                    showscale=False,
+                                    name = bd.name,
+                                    showlegend = False,
+                                    hovertemplate = "Central body"
+                                    ))
+    elif surf:
         figure.add_trace(go.Mesh3d(
                                     x = np.ndarray.flatten(x),
                                     y = np.ndarray.flatten(y),
@@ -732,7 +768,7 @@ def add_reference_line(figure, lim, style='dash'):
         showlegend = False,
         ))
 
-def plot_system(fig, centralBody, t, dateFormat, displays):
+def plot_system(fig, centralBody, t, dateFormat, displays, surfTexture='Solid'):
     
     # add all orbits
     if ('orbits' in displays):
@@ -754,7 +790,17 @@ def plot_system(fig, centralBody, t, dateFormat, displays):
     
     # add the primary body at the origin
     add_primary(fig, centralBody, False)
-    if '3dSurfs' in displays:
+    if (not surfTexture == 'Solid') and ('3dSurfs' in displays):
+        try:
+            mapURL = map_url(centralBody.name, surfTexture+'Small')
+            pix = get_pixel_values(mapURL, True)[0]
+            bodyTheta = 2*np.pi/centralBody.rotPeriod * t + centralBody.rotIni
+            lat = np.array([np.linspace(-np.pi/2, np.pi/2, 512)])
+            lon = np.array([np.linspace(-np.pi, np.pi, 512)]) + bodyTheta
+            add_primary(fig, centralBody, True, lat, lon, pix)
+        except:
+            add_primary(fig, centralBody, True)
+    elif '3dSurfs' in displays:
         add_primary(fig, centralBody, True)
     
     # add trace for primary body's position centered at the specified time
@@ -910,11 +956,11 @@ def add_orbit_surface_projection(fig, orb, startTime, endTime=None, numPts=1001,
                                  colorscale = colorscale),
                              hovertemplate =                                \
                                  "Longitude = %{x:.6f} °" + "<br>" +    \
-                                 "Latitude = %{y:.6f} °" + "<br>" +  \
+                                 "Latitude = %{y:.6f} m/s" + "<br>" +  \
                                  "UT = %{marker.color:.2f} s",
                              ))
 
-def set_surface_projection_layout(fig, uirev):
+def set_surface_projection_layout(fig, mapUrl=None, uirev=None):
     
     if uirev is None:
         uirev = 'test'
@@ -922,16 +968,16 @@ def set_surface_projection_layout(fig, uirev):
     fig.update_layout(
             xaxis = dict(range=[-180, 180]),
             yaxis = dict(range=[-90, 90]),
-            xaxis_title='Longitude',
-            yaxis_title='Latitude',
+            xaxis_title='Longitude (°)',
+            yaxis_title='Latitude (°)',
             font=dict(
                     color="rgb(200, 200, 200)"
-    )
-        )
+                    )
+                )
     fig.update_layout(
         margin=dict(l=0, r=0, t=10, b=30),
-        paper_bgcolor="rgb(30, 30, 30)",
-        plot_bgcolor="rgb(30, 30, 30)",
+        paper_bgcolor="rgba(30, 30, 30, 0)",
+        plot_bgcolor="rgba(30, 30, 30, 0)",
         xaxis = dict(
             tickmode = 'array',
             tickvals = [-180, -150, -120, -90, -60, -30, 0,                 \
@@ -950,3 +996,21 @@ def set_surface_projection_layout(fig, uirev):
                      gridcolor="rgb(200, 200, 200)")
     fig.update_yaxes(color = "rgb(200, 200, 200)",
                      gridcolor="rgb(200, 200, 200)")
+    
+    if not mapUrl is None:
+        try:
+            fig.update_layout(
+                images = [dict(
+                    x=-180,
+                    sizex=360,
+                    y=90,
+                    sizey=180,
+                    xref="x",
+                    yref="y",
+                    opacity=1.0,
+                    layer="below",
+                    sizing="stretch",
+                    source=mapUrl)
+                    ])
+        except:
+            pass

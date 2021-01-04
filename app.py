@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from plotutils import *
 from sfsutils import parse_savefile
 from iniutils import ini_to_system
+from imageutils import map_url
 from base64 import b64decode
 from collections import OrderedDict
 
@@ -373,6 +374,40 @@ app.layout = html.Div(id='kspti-body', children = [
                           type='number',
                           min = 0,
                           value = 3),
+                ]),
+            dcc.Tab(label='Display Settings', className='control-tab', value='display', children=[
+                html.H3('Orbit Plot Display'),
+                html.Label('Planet Texture'),
+                dcc.RadioItems(
+                    id = 'surfaceTexture-radio',
+                    options=[
+                        {'label': 'Solid Color',
+                         'value': 'Solid'},
+                        {'label': 'Color Map',
+                         'value': 'Color'},
+                        {'label': 'Biome Map',
+                         'value': 'Biome'},
+                        {'label': 'Height Map',
+                         'value': 'Height'},
+                        ],
+                    value='Solid'
+                    ),
+                html.H3('Surface Projection Display'),
+                html.Label('Surface Projection Background'),
+                dcc.RadioItems(
+                    id = 'surfaceMap-radio',
+                    options=[
+                        {'label': 'Blank',
+                         'value': 'Blank'},
+                        {'label': 'Color Map',
+                         'value': 'Color'},
+                        {'label': 'Biome Map',
+                         'value': 'Biome'},
+                        {'label': 'Height Map',
+                         'value': 'Height'},
+                        ],
+                    value='Blank'
+                    ),
                 ])
             ]),
         ]),
@@ -988,7 +1023,9 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
      Input('display-checklist','value'),
      Input('dateFormat-div','children'),
      Input('numSurfaceRevsBefore-input','value'),
-     Input('numSurfaceRevsAfter-input','value')],
+     Input('numSurfaceRevsAfter-input','value'),
+     Input('surfaceTexture-radio', 'value'),
+     Input('surfaceMap-radio', 'value')],
     [State('startTime-input', 'value'),
      State('endTime-input', 'value'),
      State('orbits-div','children'),
@@ -1001,6 +1038,7 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
     )
 def update_graphs(sliderTime, displays, dateFormat,
                   numSurfaceRevsBefore, numSurfaceRevsAfter,
+                  surfaceTextureType, surfaceMapType,
                   startTime, endTime,
                   orbitsTimes, orbitStartTimes, orbitEndTimes,
                   plotSystems, craftTabs,
@@ -1018,9 +1056,16 @@ def update_graphs(sliderTime, displays, dateFormat,
     fig = go.Figure()
     surfFig = go.Figure()
     lim = plot_system(fig, primaryBody, sliderTime,                         \
-                      dateFormat, displays);
+                      dateFormat, displays, surfaceTextureType);
     set_trajectory_plot_layout(fig, lim, uirev = primaryBody.name)
-    set_surface_projection_layout(surfFig, uirev = primaryBody.name+'Surf')
+    if surfaceMapType == 'Blank':
+        set_surface_projection_layout(surfFig,
+                                      mapUrl=None,
+                                      uirev = primaryBody.name+'Surf')
+    else:
+        set_surface_projection_layout(surfFig,
+                                      mapUrl=map_url(primaryBody.name, surfaceMapType),
+                                      uirev = primaryBody.name+'Surf')
     
     if 'surfProj' in displays:
         surfStyle = None
