@@ -46,11 +46,28 @@ sol_system = jsonpickle.decode(infile.read())
 infile.close()
 
 #%%
+
 def name_options(objectList):
     nameOptions = []
     for ob in objectList:
         nameOptions.append(ob.name) 
     return [{'label': i, 'value': i} for i in nameOptions]
+
+def range_in_range(start1, end1, start2, end2):
+    
+    if start2 is None:
+        start2 = 0
+    if end2 is None:
+        end2 = math.inf
+    
+    if (start1 >= start2 and start1 < end2) or      \
+       (end1 >= start2 and end1 < end2) or          \
+       (start1 <= start2 and end1 >= end2):
+           
+        return True
+    
+    else:
+        return False
 
 def add_maneuver_node(nodesList, num, burn=None):
     if burn is None:
@@ -192,7 +209,78 @@ def make_new_craft_tab(label, index, system,
     
     return newTab
 
+def make_new_graphs_tab(sys, idx, sliderStartTime, sliderEndTime):
+    
+    blankFig = blank_plot()
+    
+    tab = dcc.Tab(
+                    id={'type': 'systemGraph-tab',
+                                'index': idx},
+                    label=str(sys)+' system',
+                    className='control-tab',
+                    value=str(sys),
+                    children=[
+                        dcc.Graph(
+                            id={'type': 'system-graph',
+                                'index': idx},
+                            figure=blankFig
+                            ),
+                        dcc.Graph(
+                            id={'type': 'surface-graph',
+                                'index': idx},
+                            figure=blankFig,
+                            style={'display': 'none'}
+                            ),
+                        html.Label('Universal Time (s)'),
+                        dcc.Input(
+                            id={'type': 'plotTime-input',
+                                'index': idx},
+                            type='number',
+                            ),
+                        dcc.Slider(
+                            id={'type': 'plotTime-slider',
+                                'index': idx},
+                            min=round(sliderStartTime)+1,
+                            max=round(sliderEndTime)-1,
+                            step=1,
+                            value = round(sliderStartTime)+1,
+                            marks = dict(),
+                            included=False,
+                            updatemode='mouseup'
+                            ),
+                        html.A(children=html.Button('Download Orbit Plot'),
+                            id={'type': 'orbitDownload-button',
+                                'index': idx},
+                            download=str(sys)+'_system'+'.html',
+                            target="_blank"
+                            ),
+                        html.A(children=html.Button('Download Surface Projection'),
+                            id={'type': 'surfaceDownload-button',
+                                'index': idx},
+                            download=str(sys)+'_system'+'.html',
+                            target="_blank",
+                            ),
+                        html.Div(
+                            id={'type': 'tab-rendered',
+                                'index': idx},
+                            children = [False]
+                            )
+                        ]
+                    )
+    return tab
 
+def make_surface_projection_plot(orbitsTimes, startTime, endTime,
+                                 numSurfaceRevsBefore, numSurfaceRevsAfter,
+                                 surfaceMapType, displays):
+    
+    if 'surfProj' in displays:
+        surfStyle = None
+        fig = dash.no_update
+    else:
+        surfStyle = {'display': 'none'}
+        fig = go.Figure()
+    
+    return fig
 #%% download functions
 
 @app.server.route('/download/<path:path>')
@@ -421,11 +509,12 @@ app.layout = html.Div(id='kspti-body', children = [
                 ),
             ),
         dcc.Tabs(id='craft-tabs', style={'padding-top' : 48}, className='control-tabs', value='Craft 1', children=[
-            make_new_craft_tab('Craft 1', 1, kerbol_system,
-                                'Kerbin', 700000,0,0,0,0,0,4510000,
-                                [[1054.39,0,0,4519600.550],
-                                 [0,7.03,0,7019695.568],
-                                 [-653.34,5.86,0,10867800]]),
+            # make_new_craft_tab('Craft 1', 1, kerbol_system,
+            #                     'Kerbin', 700000,0,0,0,0,0,4510000,
+            #                     [[1054.39,0,0,4519600.550],
+            #                      [0,7.03,0,7019695.568],
+            #                      [-653.34,5.86,0,10867800]]),
+            make_new_craft_tab('Craft 1', 1, kerbol_system)
             ]),
         ]),
     
@@ -484,6 +573,10 @@ app.layout = html.Div(id='kspti-body', children = [
     html.Div(id='orbitEndTimes-div', style={'display': 'none'},
              children=[]),
     html.Div(id='plotSystems-div', style={'display': 'none'},
+             children=[]),
+    html.Div(id='systemStartTimes-div', style={'display': 'none'},
+             children=[]),
+    html.Div(id='systemEndTimes-div', style={'display': 'none'},
              children=[]),
     html.Div(id='numCrafts-div', style={'display': 'none'},
              children=[1]),
@@ -708,14 +801,20 @@ def update_craft_tabs(numCrafts,
     return craftTabs, tabVal, numCrafts
 
 @app.callback(
-     Output('orbits-div','children'),
+    [Output('orbits-div','children'),
+     Output('orbitStartTimes-div','children'),
+     Output('orbitEndTimes-div','children'),
+     Output('plotSystems-div','children'),
+     Output('systemStartTimes-div','children'),
+     Output('systemEndTimes-div','children')],
     [Input('plot-button','n_clicks')],
     [State('system-div','children'),
      State('craft-tabs','children'),
      State('numRevs-input','value'),
-     State('startTime-input','value')]
+     State('startTime-input','value'),
+     State('endTime-input','value')]
     )
-def update_orbits(nClicks, system, craftTabs, numRevs, startTime):
+def update_orbits(nClicks, system, craftTabs, numRevs, startTime, endTime):
     
     # don't update on page load
     if nClicks == 0:
@@ -723,6 +822,11 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime):
     
     craftOrbits = []
     craftTimes = []
+    systems = []
+    sliderStartTimes = []
+    sliderEndTimes = []
+    orbitStartTimes = []
+    orbitEndTimes = []
     
     for tab in craftTabs:
         
@@ -772,6 +876,7 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime):
                               ])
             nodeTimes.append(nodesChildren[5*ii+4]['props']['value'])
         
+        # set starting orbit and time
         orbits = [sOrb]
         if startTime is None:
             times = [startEpoch]
@@ -784,11 +889,14 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime):
         if len(nodeTimes)>0:
             if nodeTimes[0] < startEpoch:
                 times = [nodeTimes[0]-1]
+        
+        # propagate orbit and apply maneuver nodes
         t = times[0]
         nodeIdx = 0
         stopSearch = False
         while not stopSearch:
             nextOrb, time = orbits[-1].propagate(t+0.1)
+            # try future revolutions if no new escape/encounter in first rev
             if nextOrb is None:
                 for ii in range(numRevs):
                     t = t + orbits[-1].get_period()
@@ -796,6 +904,7 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime):
                     if not nextOrb is None:
                         break
             
+            # if no escape/encounter, apply next maneuver node
             if nextOrb is None:
                 if nodeIdx < len(nodeTimes):
                     time = nodeTimes[nodeIdx]
@@ -809,6 +918,8 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime):
                     orbits.append(nextOrb)
                     times.append(time)
                     nodeIdx = nodeIdx+1
+            
+            # otherwise, check if a maneuver happens before escape/encounter
             else:
                 t = time
                 if nodeIdx < len(nodeTimes):
@@ -831,195 +942,102 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime):
                     orbits.append(nextOrb)
                     times.append(time)
             
+            if not endTime is None:
+                if t > endTime:
+                    stopSearch = True
+            
+            # end search if no maneuvers left and no escape/encounter found
             if (nextOrb is None and nodeIdx >= len(nodeTimes)):
                 stopSearch = True
         
         craftOrbits.append(orbits)
         craftTimes.append(times)
-    
-    return jsonpickle.encode([craftOrbits, craftTimes])
-
-@app.callback(
-    [Output('graph-tabs','children'),
-     Output('graph-tabs', 'value'),
-     Output('orbitStartTimes-div', 'children'),
-     Output('orbitEndTimes-div', 'children'),
-     Output('plotSystems-div', 'children')],
-    [Input('orbits-div','children')],
-    [State('startTime-input','value'),
-     State('endTime-input','value'),
-     State('graph-tabs', 'value')]
-    )
-def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
-    
-    if orbitsTimes is None:
-        return dash.no_update, dash.no_update, dash.no_update,              \
-               dash.no_update, dash.no_update
-    
-    if len(orbitsTimes)<1:
-        return dash.no_update, dash.no_update, dash.no_update,              \
-               dash.no_update, dash.no_update
-    
-    craftOrbitsTimes = jsonpickle.decode(orbitsTimes)
-    
-    if startTime is None:
-        startTime = 0
-    
-    blankFig = blank_plot(),
-    
-    tabs = []
-    systems = []
-    sliderStartTimes = []
-    sliderEndTimes = []
-    orbitStartTimes = []
-    orbitEndTimes = []
-    
-    for nn in range(len(craftOrbitsTimes[0])):
-        orbits = craftOrbitsTimes[0][nn]
-        times = craftOrbitsTimes[1][nn]
+        
+        # determine start and end times for plotting in each system
         sTimes = []
         eTimes = []
         
-        eTime = None
         for ii in range(len(orbits)):
             
             orb = orbits[ii]
             sTime = times[ii]
-            
             soi = orb.prim.soi
             
-            if sTime < startTime:
-                sTime = startTime
+            if not startTime is None:
+                if sTime < startTime:
+                    sTime = startTime
             
-            if not sTime < startTime:
-                if ii == len(orbits)-1:
-                    if orb.ecc > 1:
-                        if soi is None:
-                            maxDist = orb.prim.satellites[-1].orb.a *                   \
-                                      (1+orb.prim.satellites[-1].orb.ecc) +             \
-                                      orb.prim.satellites[-1].soi;
-                        else:
-                            maxDist = soi
-                        # true anomaly at escape
-                        try:
-                            thetaEscape = math.acos(1/orb.ecc *                         \
-                                                    (orb.a*(1-orb.ecc**2)/maxDist - 1))
-                        except ValueError:
-                            thetaEscape = math.acos(
-                                math.copysign(1, 1/orb.ecc *                            \
-                                              (orb.a*(1-orb.ecc**2)/maxDist - 1)))
-                        eTime = orb.get_time(thetaEscape)
-                    else:
-                        if soi is None:
-                            eTime = sTime + orb.get_period()
-                        else:
-                            if orb.a*(1+orb.ecc)>soi:
-                                try:
-                                    thetaEscape = math.acos(1/orb.ecc *                 \
-                                                            (orb.a*(1-orb.ecc**2)/soi - 1))
-                                except ValueError:
-                                    thetaEscape = math.acos(
-                                        math.copysign(1, 1/orb.ecc *                    \
-                                                      (orb.a*(1-orb.ecc**2)/soi - 1)))
-                                eTime = orb.get_time(thetaEscape)
-                            else:
-                                eTime = sTime + orb.get_period()
-                else:
-                    eTime = times[ii+1]
-            
-            if not eTime is None:
-                if not endTime is None:
-                    if endTime < eTime:
-                        eTime = endTime
-                    elif ii==len(orbits)-1:
-                        eTime = endTime
-                if orb.prim.name in systems:
-                    figIdx = systems.index(orb.prim.name)
-                    if sTime < sliderStartTimes[figIdx]:
-                        sliderStartTimes[figIdx] = sTime
-                    if eTime > sliderEndTimes[figIdx]:
-                        sliderEndTimes[figIdx] = eTime
-                else:
-                    systems.append(orb.prim.name)
-                    sliderStartTimes.append(sTime)
-                    sliderEndTimes.append(eTime)
-                    figIdx = -1
-                
-                # save start and end times for each orbit
-                sTimes.append(sTime)
-                eTimes.append(eTime)
-                
-                if not endTime is None:
-                    if eTime >= endTime:
-                        break
-            
+            if ii == len(orbits)-1:
+                eTime = sTime + orb.get_period()
             else:
-                # save start and end times for each orbit
-                sTimes.append(None)
-                eTimes.append(None)
-                
+                eTime = times[ii+1]
+            
+            if not endTime is None:
+                if endTime < eTime:
+                    eTime = endTime
+            
+            if orb.prim.name in systems:
+                figIdx = systems.index(orb.prim.name)
+                if sTime < sliderStartTimes[figIdx]:
+                    sliderStartTimes[figIdx] = sTime
+                if eTime > sliderEndTimes[figIdx]:
+                    sliderEndTimes[figIdx] = eTime
+            else:
+                systems.append(orb.prim.name)
+                sliderStartTimes.append(sTime)
+                sliderEndTimes.append(eTime)
+                figIdx = -1
+            
+            # save start and end times for each orbit
+            sTimes.append(sTime)
+            eTimes.append(eTime)
+            
+            if not endTime is None:
+                if eTime >= endTime:
+                    break
+        
         orbitStartTimes.append(sTimes)
         orbitEndTimes.append(eTimes)
     
-    for jj in range(len(systems)):
-        
-        if systems[jj] == 'Sun':
-            systems[jj] = 'Solar'
-        
-        tabs.append(dcc.Tab(label=str(systems[jj])+' system',
-                            className='control-tab',
-                            value=str(systems[jj])+'-tab',
-                            children=[
-                                dcc.Graph(
-                                    id={'type': 'system-graph',
-                                        'index': jj},
-                                    figure=blankFig),
-                                dcc.Graph(
-                                    id={'type': 'surface-graph',
-                                        'index': jj},
-                                    figure=blankFig),
-                                html.Label('Universal Time (s)'),
-                                dcc.Input(
-                                    id={'type': 'plotTime-input',
-                                        'index': jj},
-                                    type='number',
-                                    value = math.ceil(sliderStartTimes[jj])+1,
-                                    min=math.ceil(sliderStartTimes[jj])+1,
-                                    max=math.floor(sliderEndTimes[jj])-1,
-                                    ),
-                                dcc.Slider(
-                                    id={'type': 'plotTime-slider',
-                                        'index': jj},
-                                    min=math.ceil(sliderStartTimes[jj])+1,
-                                    max=math.floor(sliderEndTimes[jj])-1,
-                                    step=1,
-                                    marks = dict(),
-                                    value=math.ceil(sliderStartTimes[jj])+1,
-                                    included=False,
-                                    updatemode='mouseup'
-                                    ),
-                                html.A(children=html.Button('Download'),
-                                       id={'type': 'download-button',
-                                           'index': jj},
-                                       download=str(systems[jj])+'_system'+'.html',
-                                       target="_blank"),
-                            ]
-                               ))
-        
-    if not (tabVal[0:-4] in systems):
-        try:
-            tabVal = systems[0]+'-tab'
-        except IndexError:
-            tabVal = 'blank-tab'
     
-    return tabs, tabVal, orbitStartTimes, orbitEndTimes, systems
+    return jsonpickle.encode(craftOrbits), orbitStartTimes, orbitEndTimes,  \
+           systems, sliderStartTimes, sliderEndTimes
+
+@app.callback(
+    [Output('graph-tabs','children'),
+     Output('graph-tabs', 'value')],
+    [Input('plotSystems-div','children')],
+    [State('systemStartTimes-div','children'),
+     State('systemEndTimes-div','children')]
+    )
+def update_graph_tabs(systems, sliderStartTimes, sliderEndTimes):
+    
+    blankFig = blank_plot(),
+    
+    tabs=[]
+    for idx, sys in enumerate(systems):
+        
+        if sys == 'Sun':
+            sys = 'Solar'
+        
+        tabs.append(make_new_graphs_tab(sys, idx,                           \
+                                        sliderStartTimes[idx],              \
+                                        sliderEndTimes[idx]))
+        
+    tabVal = systems[0]
+    
+    return tabs, tabVal
 
 @app.callback(
     [Output({'type': 'system-graph', 'index': MATCH}, 'figure'),
-     Output({'type': 'surface-graph', 'index': MATCH}, 'style'),
      Output({'type': 'surface-graph', 'index': MATCH}, 'figure'),
-     Output({'type': 'download-button', 'index': MATCH}, 'href')],
-    [Input({'type': 'plotTime-slider', 'index': MATCH}, 'value'),
+     Output({'type': 'surface-graph', 'index': MATCH}, 'style'),
+     Output({'type': 'orbitDownload-button', 'index': MATCH}, 'href'),
+     Output({'type': 'surfaceDownload-button', 'index': MATCH}, 'href'),
+     Output({'type': 'surfaceDownload-button', 'index': MATCH}, 'style'),
+     Output({'type': 'tab-rendered', 'index': MATCH}, 'children')],
+    [Input('graph-tabs', 'value'),
+     Input({'type': 'plotTime-slider', 'index': MATCH}, 'value'),
      Input('display-checklist','value'),
      Input('dateFormat-div','children'),
      Input('numSurfaceRevsBefore-input','value'),
@@ -1034,23 +1052,30 @@ def update_graph_tabs(orbitsTimes, startTime, endTime, tabVal):
      State('plotSystems-div', 'children'),
      State('craft-tabs', 'children'),
      State('system-div', 'children'),
-     State({'type': 'system-graph', 'index': MATCH}, 'figure')],
+     State({'type': 'tab-rendered', 'index': MATCH}, 'children')],
     )
-def update_graphs(sliderTime, displays, dateFormat,
-                  numSurfaceRevsBefore, numSurfaceRevsAfter,
-                  surfaceTextureType, surfaceMapType,
-                  startTime, endTime,
-                  orbitsTimes, orbitStartTimes, orbitEndTimes,
-                  plotSystems, craftTabs,
-                  system, prevFig):
+def update_orbit_graph(systemName, sliderTime, displays, dateFormat,
+                       numSurfaceRevsBefore, numSurfaceRevsAfter,
+                       surfaceTextureType, surfaceMapType,
+                       startTime, endTime,
+                       orbitsTimes, orbitStartTimes, orbitEndTimes,
+                       plotSystems, craftTabs, system, rendered):
     
-    figIdx = dash.callback_context.inputs_list[0]['id']['index']
-    craftOrbitsTimes = jsonpickle.decode(orbitsTimes)
+    ctx = dash.callback_context
+    tabTrigger = ctx.triggered[0]['prop_id'].split('.')[0] == 'graph-tabs'
+    
+    figIdx = ctx.inputs_list[1]['id']['index']
+    craftOrbits = jsonpickle.decode(orbitsTimes)
     system = jsonpickle.decode(system)
     
     primaryName = plotSystems[figIdx]
-    if primaryName == 'Solar':
-        primaryName = 'Sun'
+    if systemName == 'Solar':
+        systemName = 'Sun'
+    
+    if (not primaryName == systemName) or (rendered[0] and tabTrigger):
+        return dash.no_update, dash.no_update, dash.no_update,              \
+               dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    
     primaryBody = [x for x in system if x.name == primaryName][0]
     
     fig = go.Figure()
@@ -1072,7 +1097,7 @@ def update_graphs(sliderTime, displays, dateFormat,
     else:
         surfStyle = {'display': 'none'}
     
-    for nn in range(len(craftOrbitsTimes[0])):
+    for nn in range(len(craftOrbits)):
         
         craftName = craftTabs[nn]['props']['label']
         
@@ -1094,17 +1119,23 @@ def update_graphs(sliderTime, displays, dateFormat,
                               ])
             nodeTimes.append(nodesChildren[5*kk+4]['props']['value'])
         
-        orbits = craftOrbitsTimes[0][nn]
+        orbits = craftOrbits[nn]
         sTimes = orbitStartTimes[nn]
         eTimes = orbitEndTimes[nn]
         
-        for ii in range(len(orbits)):
+        for ii in range(len(sTimes)):
             orb = orbits[ii]
             sTime = sTimes[ii]
             eTime = eTimes[ii]
             
             if not ((sTime is None) or (eTime is None)) and                 \
                orb.prim.name==primaryBody.name:
+                
+                if not startTime is None:
+                    if eTime < startTime:
+                        continue
+                    elif sTime < startTime:
+                        sTime = startTime
                 
                 # draw orbits
                 if 'orbits' in displays:
@@ -1134,16 +1165,13 @@ def update_graphs(sliderTime, displays, dateFormat,
                     sTimeEarly = sliderTime - numSurfaceRevsBefore*orb.get_period()
                     eTimeLate = sliderTime + numSurfaceRevsAfter*orb.get_period()
                     
-                    if (sliderTime >= sTime and sliderTime < eTime) or      \
-                       (sTimeEarly >= sTime and sTimeEarly < eTime) or      \
-                       (eTimeLate >= sTime and eTimeLate < eTime) or        \
-                       (sTimeEarly <= sTime and eTimeLate >= eTime) or      \
+                    if range_in_range(sTimeEarly, eTimeLate, startTime, endTime) or \
                        (ii==len(orbits)-1 and sTimeEarly >= eTime):
                         
                         # add more time for surface projection after slider time
                         if ii==len(orbits)-1:
                             eTime = eTimeLate
-                        elif eTimeLate < eTime:
+                        elif eTimeLate > eTime:
                             eTime = eTimeLate
                         
                         if not endTime is None:
@@ -1153,7 +1181,7 @@ def update_graphs(sliderTime, displays, dateFormat,
                         # add more time for surface projection before slider time
                         if ii==0:
                             sTime = sTimeEarly
-                        elif sTimeEarly > sTime:
+                        elif sTimeEarly < sTime:
                             sTime = sTimeEarly
                         
                         if not startTime is None:
@@ -1168,7 +1196,7 @@ def update_graphs(sliderTime, displays, dateFormat,
                                                       color=color, numPts=numPts)
         
         if surfStyle is None:
-            for ii in range(len(orbits)):
+            for ii in range(len(sTimes)):
                 orb = orbits[ii]
                 sTime = sTimes[ii]
                 eTime = eTimes[ii]
@@ -1188,13 +1216,19 @@ def update_graphs(sliderTime, displays, dateFormat,
                                                       markerSize = 12,
                                                       borderColor='white')
     
-    # create downloadable HTML file of plot
-    filename = plotSystems[figIdx]+'_system.html'
-    path = os.path.join(DOWNLOAD_DIRECTORY, filename)
-    location = "/download/{}".format(urlquote(filename))
-    fig.write_html(path)
+    # create downloadable HTML file of orbit plot
+    orbitFilename = plotSystems[figIdx]+'_system.html'
+    orbitPath = os.path.join(DOWNLOAD_DIRECTORY, orbitFilename)
+    orbitLocation = "/download/{}".format(urlquote(orbitFilename))
+    fig.write_html(orbitPath)
     
-    return fig, surfStyle, surfFig, location
+    # create downloadable HTML file of surface plot
+    surfFilename = plotSystems[figIdx]+'_surface.html'
+    surfPath = os.path.join(DOWNLOAD_DIRECTORY, surfFilename)
+    surfLocation = "/download/{}".format(urlquote(surfFilename))
+    surfFig.write_html(surfPath)
+    
+    return fig, surfFig, surfStyle, orbitLocation, surfLocation, surfStyle, [True]
 
 @app.callback(
      Output({'type': 'plotTime-input', 'index': MATCH}, 'value'),
