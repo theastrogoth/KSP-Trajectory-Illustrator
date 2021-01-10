@@ -891,13 +891,13 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime, endTime):
                 times = [nodeTimes[0]-1]
         
         # propagate orbit and apply maneuver nodes
-        t = times[0]
         nodeIdx = 0
         stopSearch = False
         while not stopSearch:
+            t = times[-1]
             nextOrb, time = orbits[-1].propagate(t+0.1)
             # try future revolutions if no new escape/encounter in first rev
-            if nextOrb is None:
+            if nextOrb is None and orbits[-1].ecc<1:
                 for ii in range(numRevs):
                     t = t + orbits[-1].get_period()
                     nextOrb, time = orbits[-1].propagate(t+0.1)
