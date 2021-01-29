@@ -261,7 +261,12 @@ def make_new_graphs_tab(sys, idx, sliderStartTime, sliderEndTime):
                             target="_blank",
                             ),
                         html.Div(
-                            id={'type': 'tab-rendered',
+                            id={'type': 'tab-orb-rendered',
+                                'index': idx},
+                            children = [False]
+                            ),
+                        html.Div(
+                            id={'type': 'tab-surf-rendered',
                                 'index': idx},
                             children = [False]
                             )
@@ -456,7 +461,7 @@ app.layout = html.Div(id='kspti-body', children = [
                 dcc.Input(id='numSurfaceRevsBefore-input',
                           type='number',
                           min = 0,
-                          value = 3),
+                          value = 0),
                 html.Label('Max number of revolutions plotted after selected time'),
                 dcc.Input(id='numSurfaceRevsAfter-input',
                           type='number',
@@ -879,16 +884,18 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime, endTime):
         # set starting orbit and time
         orbits = [sOrb]
         if startTime is None:
-            times = [startEpoch]
+            if len(nodeTimes)==0:
+                times = [startEpoch]
+            else:
+                times = [np.amin(nodeTimes) - sOrb.get_period()]
         else:
-            if np.amin(nodeTimes) < startTime:
-                times = [np.amin(nodeTimes)]
+            if not len(nodeTimes)==0:
+                if np.amin(nodeTimes) < startTime:
+                    times = [np.amin(nodeTimes)]
+                else:
+                    times = [startTime]
             else:
                 times = [startTime]
-            
-        if len(nodeTimes)>0:
-            if nodeTimes[0] < startEpoch:
-                times = [nodeTimes[0]-1]
         
         # propagate orbit and apply maneuver nodes
         nodeIdx = 0
@@ -956,25 +963,25 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime, endTime):
         # determine start and end times for plotting in each system
         sTimes = []
         eTimes = []
-        
+        print(times)
         for ii in range(len(orbits)):
             
             orb = orbits[ii]
             sTime = times[ii]
             soi = orb.prim.soi
             
-            if not startTime is None:
-                if sTime < startTime:
-                    sTime = startTime
+            if ii==0 or sTime < times[0]:
+                sTime = times[0]
             
             if ii == len(orbits)-1:
-                eTime = sTime + orb.get_period()
+                eTime = eTime + orb.get_period()
             else:
                 eTime = times[ii+1]
             
             if not endTime is None:
-                if endTime < eTime:
+                if ii == len(orbits)-1 or endTime < eTime:
                     eTime = endTime
+                    
             
             if orb.prim.name in systems:
                 figIdx = systems.index(orb.prim.name)
@@ -999,7 +1006,6 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime, endTime):
         orbitStartTimes.append(sTimes)
         orbitEndTimes.append(eTimes)
     
-    
     return jsonpickle.encode(craftOrbits), orbitStartTimes, orbitEndTimes,  \
            systems, sliderStartTimes, sliderEndTimes
 
@@ -1018,32 +1024,24 @@ def update_graph_tabs(systems, sliderStartTimes, sliderEndTimes):
     for idx, sys in enumerate(systems):
         
         if sys == 'Sun':
-            sys = 'Solar'
+            systems[idx] = 'Solar'
         
-        tabs.append(make_new_graphs_tab(sys, idx,                           \
+        tabs.append(make_new_graphs_tab(systems[idx], idx,                  \
                                         sliderStartTimes[idx],              \
                                         sliderEndTimes[idx]))
         
     tabVal = systems[0]
-    
     return tabs, tabVal
 
 @app.callback(
     [Output({'type': 'system-graph', 'index': MATCH}, 'figure'),
-     Output({'type': 'surface-graph', 'index': MATCH}, 'figure'),
-     Output({'type': 'surface-graph', 'index': MATCH}, 'style'),
      Output({'type': 'orbitDownload-button', 'index': MATCH}, 'href'),
-     Output({'type': 'surfaceDownload-button', 'index': MATCH}, 'href'),
-     Output({'type': 'surfaceDownload-button', 'index': MATCH}, 'style'),
-     Output({'type': 'tab-rendered', 'index': MATCH}, 'children')],
+     Output({'type': 'tab-orb-rendered', 'index': MATCH}, 'children')],
     [Input('graph-tabs', 'value'),
      Input({'type': 'plotTime-slider', 'index': MATCH}, 'value'),
      Input('display-checklist','value'),
      Input('dateFormat-div','children'),
-     Input('numSurfaceRevsBefore-input','value'),
-     Input('numSurfaceRevsAfter-input','value'),
-     Input('surfaceTexture-radio', 'value'),
-     Input('surfaceMap-radio', 'value')],
+     Input('surfaceTexture-radio', 'value')],
     [State('startTime-input', 'value'),
      State('endTime-input', 'value'),
      State('orbits-div','children'),
@@ -1052,14 +1050,14 @@ def update_graph_tabs(systems, sliderStartTimes, sliderEndTimes):
      State('plotSystems-div', 'children'),
      State('craft-tabs', 'children'),
      State('system-div', 'children'),
-     State({'type': 'tab-rendered', 'index': MATCH}, 'children')],
+     State({'type': 'tab-orb-rendered', 'index': MATCH}, 'children')]
     )
 def update_orbit_graph(systemName, sliderTime, displays, dateFormat,
-                       numSurfaceRevsBefore, numSurfaceRevsAfter,
-                       surfaceTextureType, surfaceMapType,
+                       surfaceTextureType, 
                        startTime, endTime,
                        orbitsTimes, orbitStartTimes, orbitEndTimes,
-                       plotSystems, craftTabs, system, rendered):
+                       plotSystems, craftTabs, system,
+                       orbRendered):
     
     ctx = dash.callback_context
     tabTrigger = ctx.triggered[0]['prop_id'].split('.')[0] == 'graph-tabs'
@@ -1072,30 +1070,15 @@ def update_orbit_graph(systemName, sliderTime, displays, dateFormat,
     if systemName == 'Solar':
         systemName = 'Sun'
     
-    if (not primaryName == systemName) or (rendered[0] and tabTrigger):
-        return dash.no_update, dash.no_update, dash.no_update,              \
-               dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    if (not primaryName == systemName) or (orbRendered[0] and tabTrigger):
+        return dash.no_update, dash.no_update, dash.no_update
     
     primaryBody = [x for x in system if x.name == primaryName][0]
     
     fig = go.Figure()
-    surfFig = go.Figure()
     lim = plot_system(fig, primaryBody, sliderTime,                         \
                       dateFormat, displays, surfaceTextureType);
     set_trajectory_plot_layout(fig, lim, uirev = primaryBody.name)
-    if surfaceMapType == 'Blank':
-        set_surface_projection_layout(surfFig,
-                                      mapUrl=None,
-                                      uirev = primaryBody.name+'Surf')
-    else:
-        set_surface_projection_layout(surfFig,
-                                      mapUrl=map_url(primaryBody.name, surfaceMapType),
-                                      uirev = primaryBody.name+'Surf')
-    
-    if 'surfProj' in displays:
-        surfStyle = None
-    else:
-        surfStyle = {'display': 'none'}
     
     for nn in range(len(craftOrbits)):
         
@@ -1155,7 +1138,144 @@ def update_orbit_graph(systemName, sliderTime, displays, dateFormat,
                 if (sTime<=sliderTime) and ((sliderTime<eTime) or ((ii==len(orbits)-1) and (orb.ecc<1))):
                     craft = Body('Craft'+str(nn+1),0,0,0,orb=orb,color=color)
                     add_body(fig, craft, sliderTime, False, size = 4, symbol = 'square')
+    
+    # create downloadable HTML file of orbit plot
+    orbitFilename = plotSystems[figIdx]+'_system.html'
+    orbitPath = os.path.join(DOWNLOAD_DIRECTORY, orbitFilename)
+    orbitLocation = "/download/{}".format(urlquote(orbitFilename))
+    fig.write_html(orbitPath)
+    
+    return fig, orbitLocation, [True]
+
+@app.callback(
+    [Output({'type': 'surface-graph', 'index': MATCH}, 'figure'),
+     Output({'type': 'surface-graph', 'index': MATCH}, 'style'),
+     Output({'type': 'surfaceDownload-button', 'index': MATCH}, 'href'),
+     Output({'type': 'surfaceDownload-button', 'index': MATCH}, 'style'),
+     Output({'type': 'tab-surf-rendered', 'index': MATCH}, 'children')],
+    [Input('graph-tabs', 'value'),
+     Input({'type': 'plotTime-slider', 'index': MATCH}, 'value'),
+     Input('display-checklist','value'),
+     Input('dateFormat-div','children'),
+     Input('numSurfaceRevsBefore-input','value'),
+     Input('numSurfaceRevsAfter-input','value'),
+     Input('surfaceMap-radio', 'value')],
+    [State('startTime-input', 'value'),
+     State('endTime-input', 'value'),
+     State('orbits-div','children'),
+     State('orbitStartTimes-div','children'),
+     State('orbitEndTimes-div', 'children'),
+     State('plotSystems-div', 'children'),
+     State('craft-tabs', 'children'),
+     State('system-div', 'children'),
+     State({'type': 'tab-surf-rendered', 'index': MATCH}, 'children')]
+    )
+def update_surface_graph(systemName, sliderTime, displays, dateFormat,
+                       numSurfaceRevsBefore, numSurfaceRevsAfter,
+                       surfaceMapType,
+                       startTime, endTime,
+                       orbitsTimes, orbitStartTimes, orbitEndTimes,
+                       plotSystems, craftTabs, system,
+                       surfRendered):
+    
+    ctx = dash.callback_context
+    tabTrigger = ctx.triggered[0]['prop_id'].split('.')[0] == 'graph-tabs'
+    checkTrigger = ctx.triggered[0]['prop_id'].split('.')[0] == 'display-checklist'
+    
+    figIdx = ctx.inputs_list[1]['id']['index']
+    craftOrbits = jsonpickle.decode(orbitsTimes)
+    system = jsonpickle.decode(system)
+    
+    primaryName = plotSystems[figIdx]
+    if systemName == 'Solar':
+        systemName = 'Sun'
+    
+    if 'surfProj' in displays:
+        surfStyle = None
+        hidden = False
+    else:
+        surfStyle = {'display': 'none'}
+        hidden = True
+    
+    # Don't do anything if another tab is selected
+    if not (primaryName == systemName):
+        # print('   tab not selected')
+        return dash.no_update, dash.no_update, dash.no_update,              \
+               dash.no_update, dash.no_update;
+    
+    # Need to render again next time if it is hidden when the slider changes
+    # or other inputs change
+    if hidden and (not (tabTrigger or checkTrigger)):
+        # print('   set unrendered')
+        return dash.no_update, surfStyle, dash.no_update,              \
+               dash.no_update, [False];
+    
+    # No need to rerender if only the tab/checks have changed and already 
+    # rendered
+    if surfRendered[0] and (tabTrigger or checkTrigger):
+        # print('   unchanged')
+        return dash.no_update, surfStyle, dash.no_update,              \
+               dash.no_update, dash.no_update;
+    
+    # No need to rerender if hidden and only the tab has changed
+    if hidden and tabTrigger:
+        # print('   unchanged')
+        return dash.no_update, surfStyle, dash.no_update,              \
+               dash.no_update, dash.no_update;
+    
+    # print('   rerendered')
+    primaryBody = [x for x in system if x.name == primaryName][0]
+    
+    surfFig = go.Figure()
+    if surfaceMapType == 'Blank':
+        set_surface_projection_layout(surfFig,
+                                      mapUrl=None,
+                                      uirev = primaryBody.name+'Surf')
+    else:
+        set_surface_projection_layout(surfFig,
+                                      mapUrl=map_url(primaryBody.name, surfaceMapType),
+                                      uirev = primaryBody.name+'Surf')
+    
+    for nn in range(len(craftOrbits)):
+        
+        craftName = craftTabs[nn]['props']['label']
+        
+        # prepare color
+        color = (                                                           \
+            craftTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][1]['props']['value'],
+            craftTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][2]['props']['value'],
+            craftTabs[nn]['props']['children'][2]['props']['children'][1]['props']['children'][3]['props']['value']
+                )
+        
+        # prepare maneuver nodes
+        nodesChildren = craftTabs[nn]['props']['children'][3]['props']['children'][1]['props']['children'][3]['props']['children']
+        nodeBurns = []
+        nodeTimes = []
+        for kk in range(int(len(nodesChildren)/5)):
+            nodeBurns.append([nodesChildren[5*kk+1]["props"]["value"],
+                              nodesChildren[5*kk+2]["props"]["value"],
+                              nodesChildren[5*kk+3]["props"]["value"],
+                              ])
+            nodeTimes.append(nodesChildren[5*kk+4]['props']['value'])
+        
+        orbits = craftOrbits[nn]
+        sTimes = orbitStartTimes[nn]
+        eTimes = orbitEndTimes[nn]
+        
+        for ii in range(len(sTimes)):
+            orb = orbits[ii]
+            sTime = sTimes[ii]
+            eTime = eTimes[ii]
+            
+            if not ((sTime is None) or (eTime is None)) and                 \
+               orb.prim.name==primaryBody.name:
                 
+                if not startTime is None:
+                    if eTime < startTime:
+                        continue
+                    elif sTime < startTime:
+                        sTime = startTime
+        
                 # surface projection
                 if surfStyle is None:
                     if numSurfaceRevsBefore is None:
@@ -1195,32 +1315,27 @@ def update_orbit_graph(systemName, sliderTime, displays, dateFormat,
                                                       name=craftName+' orbit '+str(ii+1),
                                                       color=color, numPts=numPts)
         
-        if surfStyle is None:
-            for ii in range(len(sTimes)):
-                orb = orbits[ii]
-                sTime = sTimes[ii]
-                eTime = eTimes[ii]
+        for ii in range(len(sTimes)):
+            orb = orbits[ii]
+            sTime = sTimes[ii]
+            eTime = eTimes[ii]
+            
+            if not ((sTime is None) or (eTime is None)) and                 \
+               orb.prim.name==primaryBody.name:
+            
+                # add more time for surface projection if it's the last orbit
+                if ii==len(orbits)-1:
+                    eTime = sTime + 10*orb.get_period()
                 
-                if not ((sTime is None) or (eTime is None)) and                 \
-                   orb.prim.name==primaryBody.name:
-                
-                    # add more time for surface projection if it's the last orbit
-                    if ii==len(orbits)-1:
-                        eTime = sTime + 10*orb.get_period()
-                    
-                    # add craft location at slider time
-                    if (sTime<=sliderTime) and ((sliderTime<eTime) or ((ii==len(orbits)-1) and (orb.ecc<1))):
-                        add_orbit_surface_projection(surfFig, orb, sliderTime,
-                                                      name=craftName,
-                                                      color=color, symbol='square',
-                                                      markerSize = 12,
-                                                      borderColor='white')
+                # add craft location at slider time
+                if (sTime<=sliderTime) and ((sliderTime<eTime) or ((ii==len(orbits)-1) and (orb.ecc<1))):
+                    add_orbit_surface_projection(surfFig, orb, sliderTime,
+                                                  name=craftName,
+                                                  color=color, symbol='square',
+                                                  markerSize = 12,
+                                                  borderColor='white')
     
-    # create downloadable HTML file of orbit plot
-    orbitFilename = plotSystems[figIdx]+'_system.html'
-    orbitPath = os.path.join(DOWNLOAD_DIRECTORY, orbitFilename)
-    orbitLocation = "/download/{}".format(urlquote(orbitFilename))
-    fig.write_html(orbitPath)
+
     
     # create downloadable HTML file of surface plot
     surfFilename = plotSystems[figIdx]+'_surface.html'
@@ -1228,7 +1343,7 @@ def update_orbit_graph(systemName, sliderTime, displays, dateFormat,
     surfLocation = "/download/{}".format(urlquote(surfFilename))
     surfFig.write_html(surfPath)
     
-    return fig, surfFig, surfStyle, orbitLocation, surfLocation, surfStyle, [True]
+    return surfFig, surfStyle, surfLocation, surfStyle, [True]
 
 @app.callback(
      Output({'type': 'plotTime-input', 'index': MATCH}, 'value'),

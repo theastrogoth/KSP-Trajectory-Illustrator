@@ -752,9 +752,6 @@ class Orbit:
                                args=params, bounds=[(t, maxTime)],          \
                                jac='2-point', method='L-BFGS-B');
             except ValueError:
-                print(self)
-                print(t)
-                print(maxTime)
                 res = minimize(fun=distance, x0=[(t+maxTime)/2],            \
                                args=params, bounds=[(t, maxTime)],          \
                                jac='2-point', method='L-BFGS-B');
