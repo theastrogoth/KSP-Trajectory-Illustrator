@@ -903,6 +903,10 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime, endTime):
         while not stopSearch:
             t = times[-1]
             nextOrb, time = orbits[-1].propagate(t+0.1)
+            
+            print(t)
+            print(startEpoch)
+            print(sOrb)
             # try future revolutions if no new escape/encounter in first rev
             if nextOrb is None and orbits[-1].ecc<1:
                 for ii in range(numRevs):
@@ -1419,16 +1423,25 @@ def create_crafts_from_persistence_file(persistenceFile, system):
             except KeyError:
                 sfsManeuverNodes = []
             maneuverNodes = []
-            for node in sfsManeuverNodes:
-                if isinstance(node, OrderedDict) and len(node)>0:
-                    if 'dV' in node.keys() and 'UT' in node.keys():
-                        dvStrings = node['dV'].split(',')
-                        prograde = float(dvStrings[2])
-                        normal = float(dvStrings[1])
-                        radial = float(dvStrings[0])
-                        time = float(node['UT'])
-                        maneuverNodes.append([prograde,normal,radial,time])
-            
+            if isinstance(sfsManeuverNodes, OrderedDict) and len(sfsManeuverNodes)>0:
+                node = sfsManeuverNodes
+                if 'dV' in node.keys() and 'UT' in node.keys():
+                    dvStrings = node['dV'].split(',')
+                    prograde = float(dvStrings[2])
+                    normal = float(dvStrings[1])
+                    radial = float(dvStrings[0])
+                    time = float(node['UT'])
+                    maneuverNodes.append([prograde,normal,radial,time])
+            else:
+                for node in sfsManeuverNodes:
+                    if isinstance(node, OrderedDict) and len(node)>0:
+                        if 'dV' in node.keys() and 'UT' in node.keys():
+                            dvStrings = node['dV'].split(',')
+                            prograde = float(dvStrings[2])
+                            normal = float(dvStrings[1])
+                            radial = float(dvStrings[0])
+                            time = float(node['UT'])
+                            maneuverNodes.append([prograde,normal,radial,time])
             crafts.append(Craft(name, orb, maneuverNodes))
     
     craftOptions = name_options(crafts)
