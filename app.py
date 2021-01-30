@@ -904,9 +904,6 @@ def update_orbits(nClicks, system, craftTabs, numRevs, startTime, endTime):
             t = times[-1]
             nextOrb, time = orbits[-1].propagate(t+0.1)
             
-            print(t)
-            print(startEpoch)
-            print(sOrb)
             # try future revolutions if no new escape/encounter in first rev
             if nextOrb is None and orbits[-1].ecc<1:
                 for ii in range(numRevs):
