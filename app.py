@@ -349,7 +349,7 @@ app.layout = html.Div(id='kspti-body', children = [
                 html.Label('Number of crafts'),
                 dcc.Input(id = 'numCrafts-input',  
                           type='number',
-                          value = 1,
+                          value = 0,
                           min = 0,
                           step = 1),
                 html.Label('Number of revolutions to search for intercept'),
