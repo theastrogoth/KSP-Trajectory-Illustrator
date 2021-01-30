@@ -584,7 +584,7 @@ app.layout = html.Div(id='kspti-body', children = [
     html.Div(id='systemEndTimes-div', style={'display': 'none'},
              children=[]),
     html.Div(id='numCrafts-div', style={'display': 'none'},
-             children=[1]),
+             children=[0]),
     html.Div(id='persistenceCrafts-div', style={'display': 'none'},
              children=[]),
     ])
