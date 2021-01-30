@@ -1208,20 +1208,20 @@ def update_surface_graph(systemName, sliderTime, displays, dateFormat,
     if hidden and (not (tabTrigger or checkTrigger)):
         # print('   set unrendered')
         return dash.no_update, surfStyle, dash.no_update,              \
-               dash.no_update, [False];
+               surfStyle, [False];
     
     # No need to rerender if only the tab/checks have changed and already 
     # rendered
     if surfRendered[0] and (tabTrigger or checkTrigger):
         # print('   unchanged')
         return dash.no_update, surfStyle, dash.no_update,              \
-               dash.no_update, dash.no_update;
+               surfStyle, dash.no_update;
     
     # No need to rerender if hidden and only the tab has changed
     if hidden and tabTrigger:
         # print('   unchanged')
         return dash.no_update, surfStyle, dash.no_update,              \
-               dash.no_update, dash.no_update;
+               surfStyle, dash.no_update;
     
     # print('   rerendered')
     primaryBody = [x for x in system if x.name == primaryName][0]
