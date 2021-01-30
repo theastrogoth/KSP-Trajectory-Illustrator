@@ -1394,6 +1394,7 @@ def create_crafts_from_persistence_file(persistenceFile, system):
         name = sfsCraft['name']
         while name in names:
             name = name + "x"
+        names.append(name)
         
         a = float(sfsCraft['ORBIT']['SMA'])
         ecc = float(sfsCraft['ORBIT']['ECC'])
