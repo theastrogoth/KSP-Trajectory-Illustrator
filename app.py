@@ -519,7 +519,7 @@ app.layout = html.Div(id='kspti-body', children = [
             #                     [[1054.39,0,0,4519600.550],
             #                      [0,7.03,0,7019695.568],
             #                      [-653.34,5.86,0,10867800]]),
-            make_new_craft_tab('Craft 1', 1, kerbol_system)
+            # make_new_craft_tab('Craft 1', 1, kerbol_system)
             ]),
         ]),
     
