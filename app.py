@@ -1388,9 +1388,12 @@ def create_crafts_from_persistence_file(persistenceFile, system):
     sfsData = parse_savefile(persistenceFile, False)
     sfsCrafts = sfsData['GAME']['FLIGHTSTATE']['VESSEL']
     crafts = []
+    names = []
     for sfsCraft in sfsCrafts:
         
         name = sfsCraft['name']
+        while name in names:
+            name = name + "x"
         
         a = float(sfsCraft['ORBIT']['SMA'])
         ecc = float(sfsCraft['ORBIT']['ECC'])
